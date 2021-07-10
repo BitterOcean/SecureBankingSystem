@@ -1,4 +1,4 @@
-# Secure-BankingSystem
+# SecureBankingSystem
 ![License](https://img.shields.io/packagist/l/doctrine/orm)
 ![platform](https://img.shields.io/github/pipenv/locked/python-version/metabolize/rq-dashboard-on-heroku?color=orange&label=python)  
 
