@@ -10,7 +10,7 @@ The final project of the computer security course
 - Mohammadreza Mazrouee
 
 ### Support
-<a href="mailto:Alidadi@gmail.com"><img src="https://img.shields.io/badge/-Alidadi@gmail.com-D14836?style=flat&logo=Gmail&logoColor=white"/></a> <a href="mailto:maryamsaeedmehr@gmail.com"><img src="https://img.shields.io/badge/-maryamsaeedmehr@gmail.com-D14836?style=flat&logo=Gmail&logoColor=white"/></a> <a href="mailto:mazrouee@gmail.com"><img src="https://img.shields.io/badge/-mazrouee@gmail.com-D14836?style=flat&logo=Gmail&logoColor=white"/></a>
+<a href="mailto:marziii.a20@gmail.com"><img src="https://img.shields.io/badge/-marziii.a20@gmail.com-D14836?style=flat&logo=Gmail&logoColor=white"/></a> <a href="mailto:maryamsaeedmehr@gmail.com"><img src="https://img.shields.io/badge/-maryamsaeedmehr@gmail.com-D14836?style=flat&logo=Gmail&logoColor=white"/></a> <a href="mailto:mazrouee@gmail.com"><img src="https://img.shields.io/badge/-mazrouee@gmail.com-D14836?style=flat&logo=Gmail&logoColor=white"/></a>
 
 
 ### License
