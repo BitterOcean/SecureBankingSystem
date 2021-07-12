@@ -19,8 +19,8 @@ END$$
 
 DELIMITER ;
 
-CALL check_user('mazrouee99', @status); 
-SELECT @status;
+#CALL check_user('mazrouee99', @status); 
+#SELECT @status;
 #------------------------------------------------------------------
 DELIMITER $$
 
@@ -36,5 +36,5 @@ END$$
 
 DELIMITER ;
 
-CALL add_user('mazrouee99', '12345', 'gjjk');
+#CALL add_user('mazrouee99', '12345', 'gjjk');
 #------------------------------------------------------------------
