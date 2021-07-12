@@ -10,7 +10,7 @@ CREATE OR REPLACE TABLE User (
 
 
 CREATE OR REPLACE TABLE Account (
-  account_no VARCHAR(10) PRIMARY KEY,
+  account_no INT(10) AUTO_INCREMENT PRIMARY KEY,
   opener_ID VARCHAR(50) NOT NULL,
   `type` VARCHAR(30) NOT NULL
     CHECK(type IN (
@@ -26,12 +26,13 @@ CREATE OR REPLACE TABLE Account (
 	updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (opener_ID) REFERENCES User(username)
 );
+ALTER TABLE Account AUTO_INCREMENT = 1000000000;
 
 
 CREATE OR REPLACE TABLE Account_User (
   account_user_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
-  account_no VARCHAR(10) NOT NULL,
+  account_no INT(10) NOT NULL,
   conf_lable VARCHAR(1) CHECK(conf_lable IN ('1','2','3','4') ),
 	integrity_lable VARCHAR(1) CHECK(integrity_lable IN ('1','2','3','4')),
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -43,8 +44,8 @@ CREATE OR REPLACE TABLE Account_User (
 CREATE OR REPLACE TABLE `Transaction` (
   transaction_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
-  from_account_no VARCHAR(10) NOT NULL,
-  to_account_no VARCHAR(10) NOT NULL,
+  from_account_no INT(10) NOT NULL,
+  to_account_no INT(10) NOT NULL,
   amount DECIMAL(7, 4) NOT NULL,
   `status` VARCHAR(1) CHECK(`status` IN ('1', '0') ),
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
