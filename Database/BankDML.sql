@@ -5,7 +5,7 @@ GO
 DROP FUNCTION IF EXISTS is_ban;
 DELIMITER //
 
-CREATE FUNCTION is_ban(username_var varchar(255))
+CREATE FUNCTION is_ban(_username varchar(255))
   RETURNS INT
   LANGUAGE SQL
   DETERMINISTIC
@@ -13,9 +13,9 @@ CREATE FUNCTION is_ban(username_var varchar(255))
   SQL SECURITY DEFINER
   COMMENT 'returns 0 if the user is banned and 1 otherwise'
     BEGIN
-      SET @ban_times_var := (SELECT ban_times FROM Ban_Users WHERE username = username_var);
-      SET @started_at_var := (SELECT started_at FROM Ban_Users WHERE username = username_var);
-      SET @finished_at_var := (SELECT finished_at FROM Ban_Users WHERE username = username_var);
+      SET @ban_times_var := (SELECT ban_times FROM Ban_Users WHERE username = _username);
+      SET @started_at_var := (SELECT started_at FROM Ban_Users WHERE username = _username);
+      SET @finished_at_var := (SELECT finished_at FROM Ban_Users WHERE username = _username);
 
       IF (@started_at_var IS NULL OR @ban_times_var = 0) THEN
         SET @ret = 0;
@@ -34,10 +34,10 @@ DELIMITER ;
 GO
 
 
-DROP FUNCTION IF EXISTS find_last_failed_login;
+DROP FUNCTION IF EXISTS get_last_failed_login;
 DELIMITER //
 
-CREATE FUNCTION find_last_failed_login(username_var VARCHAR(255))
+CREATE FUNCTION get_last_failed_login(_username VARCHAR(255))
   RETURNS INT
   LANGUAGE SQL
   DETERMINISTIC
@@ -50,7 +50,7 @@ CREATE FUNCTION find_last_failed_login(username_var VARCHAR(255))
       SET @last_success_login = (
         SELECT created_at
         FROM Login_Request_Log
-        WHERE username = username_var
+        WHERE username = _username
           AND `status` = '1'
       );
 
@@ -64,7 +64,7 @@ CREATE FUNCTION find_last_failed_login(username_var VARCHAR(255))
       SET @ret = (
         SELECT count(*)
         FROM Login_Request_Log
-        WHERE username = username_var
+        WHERE username = _username
           AND `status` = '0'
           AND created_at > @max_date
       );
@@ -79,7 +79,7 @@ GO
 DROP FUNCTION IF EXISTS check_password;
 DELIMITER //
 
-CREATE FUNCTION check_password(username_var VARCHAR(255), password_var VARCHAR(500))
+CREATE FUNCTION check_password(_username VARCHAR(255), _password VARCHAR(500))
   RETURNS INT
   LANGUAGE SQL
   DETERMINISTIC
@@ -91,10 +91,10 @@ CREATE FUNCTION check_password(username_var VARCHAR(255), password_var VARCHAR(5
       SET @pass = (
         SELECT `password`
         FROM User
-        WHERE username = username_var
+        WHERE username = _username
       );
 
-      IF @pass = password_var THEN
+      IF @pass = _password THEN
         SET @ret = 1;
       END IF;
 
