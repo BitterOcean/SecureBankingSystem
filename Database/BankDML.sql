@@ -11,9 +11,9 @@ BEGIN
     FROM user
     WHERE username = _username;
     IF NumOfUsers > 0 THEN
-        SET _status = 0;
-    ELSE
         SET _status = 1;
+    ELSE
+        SET _status = 0;
     END IF;
 END$$
 
@@ -40,3 +40,20 @@ DELIMITER ;
 
 #CALL add_user('mazrouee99', '12345', 'gjjk');
 #------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE get_password(
+	IN _username VARCHAR(50),
+    OUT _password VARCHAR(200)
+)
+BEGIN
+    SELECT `password`
+    INTO _password
+    FROM user
+    WHERE username = _username;
+END$$
+
+DELIMITER ;
+
+#CALL get_password('mazrouee99', @password); 
+#SELECT @password;
