@@ -34,7 +34,7 @@ CREATE PROCEDURE add_user(
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO user (username, `password`, salt)
+	INSERT INTO User (username, `password`, salt)
 	  VALUES (_username, _password, _salt);
 	COMMIT;
 END$$
@@ -52,12 +52,12 @@ CREATE PROCEDURE get_password_salt(
 BEGIN
     SELECT `password`
     INTO _password
-    FROM user
+    FROM User
     WHERE username = _username;
 
     SELECT salt
     INTO _salt
-    FROM user
+    FROM User
     WHERE username = _username;
 END$$
 
@@ -74,7 +74,7 @@ BEGIN
 	DECLARE ban DECIMAL DEFAULT 0;
   SELECT COUNT(*)
   INTO ban
-  FROM ban_users
+  FROM Ban_Users
   WHERE username = _username
     AND ban_times <> 0
     AND CURRENT_TIMESTAMP < finished_at;
@@ -88,8 +88,57 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS create_join_request;
+DELIMITER $$
+CREATE PROCEDURE create_join_request(
+  IN _applicant_username VARCHAR(50),
+	IN _desired_account_no INT(10),
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Join_Request (applicant_username, desired_account_no)
+	  VALUES (_applicant_username, _desired_account_no);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS accept_join_request;
+DELIMITER $$
+CREATE PROCEDURE accept_join_request(
+	IN _username VARCHAR(50),
+  IN _account_no INT(10),
+  IN _conf_lable VARCHAR(1),
+  IN _integrity_lable VARCHAR(1),
+)
+BEGIN
+	START TRANSACTION;
+  UPDATE Join_Request
+  SET `status` = '1'
+  WHERE applicant_username = _username
+    AND desired_account_no = _account_no;
+
+	INSERT INTO Account_User (
+    username,
+    account_no,
+    conf_lable,
+    integrity_lable
+    ) VALUES (
+      _username,
+      _account_no,
+      _conf_lable,
+      _integrity_lable
+    );
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS deposit;
 DELIMITER $$
+-- Deposit ~ transfare from_account_no to_account_no
 CREATE PROCEDURE deposit(
   IN _username VARCHAR(50),
 	IN _from_account_no INT(10),
@@ -120,10 +169,11 @@ DELIMITER ;
 
 DROP PROCEDURE IF EXISTS withdraw;
 DELIMITER $$
+-- Withdraw ~ withdraw from_account_no
+-- to_account_no is additional (project bug!)
 CREATE PROCEDURE withdraw(
   IN _username VARCHAR(50),
-	IN _from_account_no INT(10),
-  IN _to_account_no INT(10),
+	IN _account_no INT(10),
   IN _amount DECIMAL(7, 4)
 )
 BEGIN
@@ -136,8 +186,8 @@ BEGIN
     `status`
     ) VALUES (
       _username,
-      _from_account_no,
-      _to_account_no,
+      _account_no,
+      _account_no,
       (0 - _amount),
       '1'
     );
@@ -147,14 +197,80 @@ END$$
 DELIMITER ;
 
 
-DROP TRIGGER IF EXISTS auto_updated_at;
+DROP PROCEDURE IF EXISTS add_signup_log;
 DELIMITER $$
-CREATE TRIGGER auto_updated_at
-AFTER UPDATE
+CREATE PROCEDURE add_signup_log(
+	IN _username VARCHAR(50),
+  IN _password VARCHAR(200),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Signup_Request_Log (username, `password`, `status`)
+	  VALUES (_username, _password, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_login_log;
+DELIMITER $$
+CREATE PROCEDURE add_login_log(
+	IN _username VARCHAR(50),
+  IN _password VARCHAR(200),
+  IN _status VARCHAR(1),
+  IN _ip VARCHAR(20),
+  IN _port VARCHAR(6)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Login_Request_Log (username, `password`, `status`, ip, port)
+	  VALUES (_username, _password, _status, _ip, _port);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS update_ban_user;
+DELIMITER $$
+CREATE PROCEDURE update_ban_user(
+  IN _username VARCHAR(50),
+  IN _ban_times INT,
+	IN _started_at DATETIME,
+  IN _finished_at DATETIME
+)
+BEGIN
+	UPDATE Ban_Users
+    SET ban_times = _ban_times,
+        started_at = _started_at,
+        finished_at = _finished_at
+    WHERE username = _username;
+END$$
+
+DELIMITER ;
+
+
+DROP TRIGGER IF EXISTS auto_account_updated_at;
+DELIMITER $$
+CREATE TRIGGER auto_account_updated_at
+BEFORE UPDATE
 ON Account
 FOR EACH ROW
-  UPDATE Account
-  SET NEW.updated_at = CURRENT_TIMESTAMP
+  SET NEW.updated_at = CURRENT_TIMESTAMP;
+$$
+DELIMITER ;
+GO
+
+
+DROP TRIGGER IF EXISTS auto_join_updated_at;
+DELIMITER $$
+CREATE TRIGGER auto_join_updated_at
+BEFORE UPDATE
+ON Join_Request
+FOR EACH ROW
+  SET NEW.updated_at = CURRENT_TIMESTAMP;
 $$
 DELIMITER ;
 GO
@@ -167,7 +283,7 @@ AFTER INSERT
 ON User
 FOR EACH ROW
   INSERT INTO Ban_Users ( username, ban_times, started_at, finished_at )
-    VALUES(NEW.username, 0, NULL, NULL)
+    VALUES(NEW.username, 0, NULL, NULL);
 $$
 DELIMITER ;
 GO
@@ -185,9 +301,11 @@ BEGIN
   SET amount = amount + NEW.amount
   WHERE account_no = NEW.to_account_no;
   -- update origin account balance
-  UPDATE Account
-  SET amount = amount - NEW.amount
-  WHERE account_no = NEW.from_account_no;
+  IF (NEW.to_account_no <> NEW.from_account_no) THEN
+    UPDATE Account
+    SET amount = amount - NEW.amount
+    WHERE account_no = NEW.from_account_no;
+  END IF;
 END$$
 DELIMITER ;
 GO
