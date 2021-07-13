@@ -30,8 +30,10 @@ CREATE OR REPLACE PROCEDURE add_user(
     IN _salt VARCHAR(100)
 )
 BEGIN
+	START TRANSACTION;
 	INSERT INTO user (username, `password`, salt)
 	VALUES (_username, _password, _salt);
+	COMMIT;
 END$$
 
 DELIMITER ;
