@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 12, 2021 at 07:48 PM
+-- Generation Time: Jul 13, 2021 at 05:07 AM
 -- Server version: 10.4.14-MariaDB
 -- PHP Version: 7.4.11
 
@@ -26,8 +26,10 @@ DELIMITER $$
 -- Procedures
 --
 CREATE DEFINER=`root`@`localhost` PROCEDURE `add_user` (IN `_username` VARCHAR(50), IN `_password` VARCHAR(200), IN `_salt` VARCHAR(100))  BEGIN
+	START TRANSACTION;
 	INSERT INTO user (username, `password`, salt)
 	VALUES (_username, _password, _salt);
+	COMMIT;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `check_user` (IN `_username` VARCHAR(50), OUT `_status` INT)  BEGIN
@@ -148,6 +150,13 @@ CREATE TABLE `user` (
   `salt` varchar(100) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `user`
+--
+
+INSERT INTO `user` (`username`, `password`, `salt`, `created_at`) VALUES
+('mazrouee99', '12345', 'gjjk', '2021-07-13 07:25:30');
 
 --
 -- Indexes for dumped tables
