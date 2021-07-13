@@ -1,9 +1,7 @@
 USE securebankingsystem
 GO
 
-----------------------------------------
-------------- Procedures ---------------
-----------------------------------------
+
 DROP PROCEDURE IF EXISTS check_user;
 DELIMITER $$
 CREATE PROCEDURE check_user(
@@ -44,15 +42,21 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS get_password;
+DROP PROCEDURE IF EXISTS get_password_salt;
 DELIMITER $$
-CREATE PROCEDURE get_password(
+CREATE PROCEDURE get_password_salt(
 	IN _username VARCHAR(50),
-  OUT _password VARCHAR(200)
+  OUT _password VARCHAR(200),
+  OUT _salt VARCHAR(100)
 )
 BEGIN
     SELECT `password`
     INTO _password
+    FROM user
+    WHERE username = _username;
+
+    SELECT salt
+    INTO _salt
     FROM user
     WHERE username = _username;
 END$$
@@ -130,8 +134,7 @@ BEGIN
     to_account_no,
     amount,
     `status`
-    )
-	  VALUES (
+    ) VALUES (
       _username,
       _from_account_no,
       _to_account_no,
@@ -143,9 +146,7 @@ END$$
 
 DELIMITER ;
 
-----------------------------------------
-------------- Triggers -----------------
-----------------------------------------
+
 DROP TRIGGER IF EXISTS auto_updated_at;
 DELIMITER $$
 CREATE TRIGGER auto_updated_at
