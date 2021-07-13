@@ -62,28 +62,6 @@ DELIMITER ;
 #------------------------------------------------------------------
 DELIMITER $$
 
-CREATE OR REPLACE PROCEDURE check_ban(
-	IN _username VARCHAR(50),
-    OUT _status int
-)
-BEGIN
-	DECLARE ban DECIMAL DEFAULT 0;
-    SELECT COUNT(*)
-    INTO ban
-    FROM ban_users
-    WHERE username = _username and ban_times <> 0 
-    and CURRENT_TIMESTAMP < finished_at;
-    IF ban > 0 THEN
-        SET _status = 1;
-    ELSE
-        SET _status = 0;
-    END IF;
-END$$
-
-DELIMITER ;
-#------------------------------------------------------------------
-DELIMITER $$
-
 CREATE OR REPLACE PROCEDURE add_account(
     IN _account_no VARCHAR(10),
 	IN _username VARCHAR(50),
@@ -128,4 +106,66 @@ DELIMITER ;
 
 #CALL check_account_number('1234567890', @status); 
 #SELECT @status;
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE update_ban(
+	IN _username VARCHAR(50)
+)
+BEGIN
+	DECLARE _ban_times INT DEFAULT 0;
+	SELECT ban_times
+    INTO _ban_times
+    FROM ban_users
+    WHERE username = _username;
+	
+    START TRANSACTION;
+	UPDATE ban_users
+    SET
+    	ban_times = _ban_times + 1,
+        started_at = CURRENT_TIMESTAMP,
+        finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
+    WHERE
+    	username = _username;
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+#CALL update_ban('mazrouee99');
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE check_ban(
+	IN _username VARCHAR(50),
+    OUT _status int,
+    OUT remaining_time int
+)
+BEGIN
+	DECLARE ban DECIMAL DEFAULT 0;
+    
+    SELECT COUNT(*)
+    INTO ban
+    FROM ban_users
+    WHERE username = _username and ban_times <> 0 
+    and CURRENT_TIMESTAMP < finished_at;
+    
+    SELECT TIME_TO_SEC(TIMEDIFF(finished_at, CURRENT_TIMESTAMP)) diff
+    INTO remaining_time
+    FROM ban_users
+    WHERE username = _username;
+    
+    IF ban > 0 THEN
+        SET _status = 1;
+    ELSE
+        SET _status = 0;
+        SET remaining_time = 0;
+    END IF;
+END$$
+
+DELIMITER ;
+
+#CALL check_ban('mazrouee99', @status, @remain_time);
+#SELECT @status;
+#SELECT @remain_time;
 #------------------------------------------------------------------
