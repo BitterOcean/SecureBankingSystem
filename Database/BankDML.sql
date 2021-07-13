@@ -81,3 +81,51 @@ BEGIN
 END$$
 
 DELIMITER ;
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE add_account(
+    IN _account_no VARCHAR(10),
+	IN _username VARCHAR(50),
+    IN _type VARCHAR(30),
+    IN _amount DECIMAL(15, 4),
+    IN _conf_lable VARCHAR(1),
+    IN _integrity_lable VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
+	VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
+    INSERT INTO account_user(username, account_no, conf_lable, integrity_lable)
+    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+#CALL add_account('1234567890', 'mazrouee99', 'Short-term saving account',1250.26 ,'2' ,'3');
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE check_account_number(
+	IN _account_no VARCHAR(10),
+    OUT _status int
+)
+BEGIN
+	DECLARE NumOfAccounts DECIMAL DEFAULT 0;
+    SELECT COUNT(*)
+    INTO NumOfAccounts
+    FROM account
+    WHERE account_no = _account_no;
+    IF NumOfAccounts > 0 THEN
+        SET _status = 1;
+    ELSE
+        SET _status = 0;
+    END IF;
+END$$
+
+DELIMITER ;
+
+#CALL check_account_number('1234567890', @status); 
+#SELECT @status;
+#------------------------------------------------------------------
