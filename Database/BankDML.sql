@@ -57,3 +57,25 @@ DELIMITER ;
 
 #CALL get_password('mazrouee99', @password); 
 #SELECT @password;
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE check_ban(
+	IN _username VARCHAR(50),
+    OUT _status int
+)
+BEGIN
+	DECLARE ban DECIMAL DEFAULT 0;
+    SELECT COUNT(*)
+    INTO ban
+    FROM ban_users
+    WHERE username = _username and ban_times <> 0 
+    and CURRENT_TIMESTAMP < finished_at;
+    IF ban > 0 THEN
+        SET _status = 1;
+    ELSE
+        SET _status = 0;
+    END IF;
+END$$
+
+DELIMITER ;
