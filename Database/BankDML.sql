@@ -42,21 +42,23 @@ DELIMITER ;
 #------------------------------------------------------------------
 DELIMITER $$
 
-CREATE OR REPLACE PROCEDURE get_password(
+CREATE OR REPLACE PROCEDURE get_password_salt(
 	IN _username VARCHAR(50),
-    OUT _password VARCHAR(200)
+    OUT _password VARCHAR(200),
+    OUT _salt VARCHAR(100)
 )
 BEGIN
     SELECT `password`
     INTO _password
     FROM user
     WHERE username = _username;
+    SELECT salt
+    INTO _salt
+    FROM user
+    WHERE username = _username;
 END$$
 
 DELIMITER ;
-
-#CALL get_password('mazrouee99', @password); 
-#SELECT @password;
 #------------------------------------------------------------------
 DELIMITER $$
 
