@@ -159,32 +159,6 @@ if __name__ == '__main__':
 
                 elif cmd[0] == "Help" and len(cmd) == 1:
                     print(help_message2)
-                
-                elif cmd[0] == "Show_MyAccount" and len(cmd) == 1:
-                    replay = talk_to_server(command, client, session_key)
-                    if(replay == 0):
-                        return 0
-                    else:
-                        print(replay)
-
-                elif cmd[0] == "Show_Account" and len(cmd) == 2:
-                    replay = talk_to_server(command, client, session_key)
-                    if(replay == 0):
-                        return 0
-                    else:
-                        print(replay)
-                    
-                elif cmd[0] == "Join" and len(cmd) == 2:
-                    replay = talk_to_server(command, client, session_key)
-                    if(replay == 1):
-                        print("pending")
-                    elif(replay == 2):
-                        print("accepted")         
-                    else:
-                        return 0
-            
-                elif cmd[0] == "Accept" and len(cmd) == 4:  ## 3 or 4? depends on senario
-                    
 
                 elif cmd[0] == "Exit" and len(cmd) == 1:
 
@@ -214,17 +188,3 @@ if __name__ == '__main__':
                     print()
 
         client.close()
-        
-def talk_to_server(command, client, session_key):
-    cipher_text = encrypt(command, session_key)
-    if cipher_text == None:
-        return 0
-    if cipher_text != None:
-    client.send(cipher_text.encode('utf-8'))
-    replay = client.recv(1024)
-    replay = replay.decode('utf-8')
-    plain_text = decrypt(replay, session_key)
-    if plain_text == None:
-        return 0
-    if plain_text != None:
-        return plain_text 

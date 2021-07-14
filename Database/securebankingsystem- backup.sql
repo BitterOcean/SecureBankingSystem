@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 14, 2021 at 12:14 AM
+-- Generation Time: Jul 13, 2021 at 05:07 AM
 -- Server version: 10.4.14-MariaDB
 -- PHP Version: 7.4.11
 
@@ -25,55 +25,11 @@ DELIMITER $$
 --
 -- Procedures
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `add_account` (IN `_account_no` VARCHAR(10), IN `_username` VARCHAR(50), IN `_type` VARCHAR(30), IN `_amount` DECIMAL(15,4), IN `_conf_lable` VARCHAR(1), IN `_integrity_lable` VARCHAR(1))  BEGIN
-	START TRANSACTION;
-	INSERT INTO account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
-	VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
-    INSERT INTO account_user(username, account_no, conf_lable, integrity_lable)
-    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
-	COMMIT;
-END$$
-
 CREATE DEFINER=`root`@`localhost` PROCEDURE `add_user` (IN `_username` VARCHAR(50), IN `_password` VARCHAR(200), IN `_salt` VARCHAR(100))  BEGIN
 	START TRANSACTION;
 	INSERT INTO user (username, `password`, salt)
 	VALUES (_username, _password, _salt);
 	COMMIT;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `check_account_number` (IN `_account_no` VARCHAR(10), OUT `_status` INT)  BEGIN
-	DECLARE NumOfAccounts DECIMAL DEFAULT 0;
-    SELECT COUNT(*)
-    INTO NumOfAccounts
-    FROM account
-    WHERE account_no = _account_no;
-    IF NumOfAccounts > 0 THEN
-        SET _status = 1;
-    ELSE
-        SET _status = 0;
-    END IF;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `check_ban` (IN `_username` VARCHAR(50), OUT `_status` INT, OUT `remaining_time` INT)  BEGIN
-	DECLARE ban DECIMAL DEFAULT 0;
-    
-    SELECT COUNT(*)
-    INTO ban
-    FROM ban_users
-    WHERE username = _username and ban_times <> 0 
-    and CURRENT_TIMESTAMP < finished_at;
-    
-    SELECT TIME_TO_SEC(TIMEDIFF(finished_at, CURRENT_TIMESTAMP)) diff
-    INTO remaining_time
-    FROM ban_users
-    WHERE username = _username;
-    
-    IF ban > 0 THEN
-        SET _status = 1;
-    ELSE
-        SET _status = 0;
-        SET remaining_time = 0;
-    END IF;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `check_user` (IN `_username` VARCHAR(50), OUT `_status` INT)  BEGIN
@@ -83,39 +39,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `check_user` (IN `_username` VARCHAR
     FROM user
     WHERE username = _username;
     IF NumOfUsers > 0 THEN
-        SET _status = 1;
-    ELSE
         SET _status = 0;
+    ELSE
+        SET _status = 1;
     END IF;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_password_salt` (IN `_username` VARCHAR(50), OUT `_password` VARCHAR(200), OUT `_salt` VARCHAR(100))  BEGIN
-    SELECT `password`
-    INTO _password
-    FROM user
-    WHERE username = _username;
-    SELECT salt
-    INTO _salt
-    FROM user
-    WHERE username = _username;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_ban` (IN `_username` VARCHAR(50))  BEGIN
-	DECLARE _ban_times INT DEFAULT 0;
-	SELECT ban_times
-    INTO _ban_times
-    FROM ban_users
-    WHERE username = _username;
-	
-    START TRANSACTION;
-	UPDATE ban_users
-    SET
-    	ban_times = _ban_times + 1,
-        started_at = CURRENT_TIMESTAMP,
-        finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
-    WHERE
-    	username = _username;
-	COMMIT;
 END$$
 
 DELIMITER ;
@@ -164,13 +91,6 @@ CREATE TABLE `ban_users` (
   `started_at` datetime DEFAULT NULL,
   `finished_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Dumping data for table `ban_users`
---
-
-INSERT INTO `ban_users` (`username`, `ban_times`, `started_at`, `finished_at`) VALUES
-('mazrouee99', 7, '2021-07-14 02:38:32', '2021-07-14 02:39:02');
 
 -- --------------------------------------------------------
 
@@ -236,16 +156,7 @@ CREATE TABLE `user` (
 --
 
 INSERT INTO `user` (`username`, `password`, `salt`, `created_at`) VALUES
-('mazrouee99', '12345', 'gjjk', '2021-07-14 01:30:42');
-
---
--- Triggers `user`
---
-DELIMITER $$
-CREATE TRIGGER `auto_insert_ban_user` AFTER INSERT ON `user` FOR EACH ROW INSERT INTO Ban_Users ( username, ban_times, started_at, finished_at )
-    VALUES(NEW.username, 0, NULL, NULL)
-$$
-DELIMITER ;
+('mazrouee99', '12345', 'gjjk', '2021-07-13 07:25:30');
 
 --
 -- Indexes for dumped tables
@@ -307,7 +218,7 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT for table `account_user`
 --
 ALTER TABLE `account_user`
-  MODIFY `account_user_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `account_user_ID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `login_request_log`

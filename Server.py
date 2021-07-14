@@ -60,33 +60,7 @@ def client_service(client):
 
             elif command[0] == "Exit" and len(command) == 1:
                 break
-                
-            elif command[0] == "Show_MyAccount" and len(command) == 1:
-                msg = show_my_account(username)
-                cipher_text = encrypt(msg, session_key)
-                if cipher_text == None:
-                    return 0
-                if cipher_text != None:
-                    client.send(cipher_text.encode('utf-8'))
 
-            elif command[0] == "Show_Account" and len(command) == 2:
-                msg = show_account_info(command[1])                
-                cipher_text = encrypt(msg, session_key)
-                if cipher_text == None:
-                    return 0
-                if cipher_text != None:
-                    client.send(cipher_text.encode('utf-8'))
-                    
-            elif command[0] == "Join" and len(command) == 2:
-                selected_account_no = command[1]
-                ##         
-            
-            
-            elif command[0] == "Accept" and len(command) == 4:
-                selected_username = command[1]
-                selected_conf_label = command[2]
-                selected_integrity_label = command[3]        
-                                
         else:
             if command[0] == "Signup" and len(command) == 3:
                 if check_username(command[1]) == 0:
@@ -178,28 +152,6 @@ def check_password(username, password):
         return 1
     cursor.close()
     return 0
-
-def show_my_account(username):
-    cursor = connection.cursor()
-    cursor.callproc('Show_MyAccount', [username])
-    for result in cursor.stored_results():
-        query_result = result.fetchall()
-    cursor.close()
-    return query_result
-
-def show_account_info(selected_account_no):
-    cursor = connection.cursor()
-    cursor.callproc('five_Deposit', [selected_account_no])
-    for result in cursor.stored_results():
-        five_Deposit = result.fetchall()
-    cursor.callproc('five_withdraw', [selected_account_no])
-    for result in cursor.stored_results():
-        five_withdraw = result.fetchall()
-    cursor.callproc('account_info', [selected_account_no])
-    for result in cursor.stored_results():
-        account_info = result.fetchall()
-    msg = five_Deposit + ' ' + five_withdraw + ' ' + account_info
-    return msg
 
 def key_exchange(client):
     backend = default_backend()
