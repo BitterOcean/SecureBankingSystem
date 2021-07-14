@@ -60,30 +60,7 @@ END$$
 
 DELIMITER ;
 #------------------------------------------------------------------
-DELIMITER $$
-
-CREATE OR REPLACE PROCEDURE check_ban(
-	IN _username VARCHAR(50),
-    OUT _status int
-)
-BEGIN
-	DECLARE ban DECIMAL DEFAULT 0;
-    SELECT COUNT(*)
-    INTO ban
-    FROM ban_users
-    WHERE username = _username and ban_times <> 0 
-    and CURRENT_TIMESTAMP < finished_at;
-    IF ban > 0 THEN
-        SET _status = 1;
-    ELSE
-        SET _status = 0;
-    END IF;
-END$$
-
-DELIMITER ;
-#------------------------------------------------------------------
-DELIMITER $$
-
+/*DELIMITER $$
 CREATE OR REPLACE PROCEDURE add_account(
     IN _account_no VARCHAR(10),
 	IN _username VARCHAR(50),
@@ -100,10 +77,8 @@ BEGIN
     VALUES (_username, _account_no, _conf_lable, _integrity_lable);
 	COMMIT;
 END$$
-
 DELIMITER ;
-
-#CALL add_account('1234567890', 'mazrouee99', 'Short-term saving account',1250.26 ,'2' ,'3');
+#CALL add_account('1234567890', 'mazrouee99', 'Short-term saving account',1250.26 ,'2' ,'3');*/
 #------------------------------------------------------------------
 DELIMITER $$
 
@@ -128,4 +103,99 @@ DELIMITER ;
 
 #CALL check_account_number('1234567890', @status); 
 #SELECT @status;
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE update_ban(
+	IN _username VARCHAR(50)
+)
+BEGIN
+	DECLARE _ban_times INT DEFAULT 0;
+	SELECT ban_times
+    INTO _ban_times
+    FROM ban_users
+    WHERE username = _username;
+	
+    START TRANSACTION;
+	UPDATE ban_users
+    SET
+    	ban_times = _ban_times + 1,
+        started_at = CURRENT_TIMESTAMP,
+        finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
+    WHERE
+    	username = _username;
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+#CALL update_ban('mazrouee99');
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE check_ban(
+	IN _username VARCHAR(50),
+    OUT _status int,
+    OUT remaining_time int
+)
+BEGIN
+	DECLARE ban DECIMAL DEFAULT 0;
+    
+    SELECT COUNT(*)
+    INTO ban
+    FROM ban_users
+    WHERE username = _username and ban_times <> 0 
+    and CURRENT_TIMESTAMP < finished_at;
+    
+    SELECT TIME_TO_SEC(TIMEDIFF(finished_at, CURRENT_TIMESTAMP)) diff
+    INTO remaining_time
+    FROM ban_users
+    WHERE username = _username;
+    
+    IF ban > 0 THEN
+        SET _status = 1;
+    ELSE
+        SET _status = 0;
+        SET remaining_time = 0;
+    END IF;
+END$$
+
+DELIMITER ;
+
+#CALL check_ban('mazrouee99', @status, @remain_time);
+#SELECT @status;
+#SELECT @remain_time;
+#------------------------------------------------------------------
+DELIMITER $$
+
+CREATE OR REPLACE PROCEDURE add_account(
+	IN _username VARCHAR(50),
+    IN _type VARCHAR(30),
+    IN _amount DECIMAL(15, 4),
+    IN _conf_lable VARCHAR(1),
+    IN _integrity_lable VARCHAR(1),
+    OUT _account_no VARCHAR(10)
+)
+BEGIN
+	DECLARE AC int DEFAULT 1000000000;
+	WHILE (SELECT COUNT(*)
+           FROM account
+           WHERE AC in (SELECT CAST(account_no as int) FROM account)) DO
+		SET AC = AC + 1;
+    END WHILE;
+    SELECT CAST(AC as char(10))
+    INTO _account_no;
+           
+	START TRANSACTION;
+	INSERT INTO account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
+	VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
+    INSERT INTO account_user(username, account_no, conf_lable, integrity_lable)
+    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+#CALL add_account('mazrouee99', 'Short-term saving account',1250.26 ,'2' ,'3', @account_number);
+#SELECT @account_number;
 #------------------------------------------------------------------
