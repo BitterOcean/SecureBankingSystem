@@ -202,3 +202,68 @@ DELIMITER ;
 #CALL add_account('mazrouee99', 'Short-term saving account',1250.26 ,'2' ,'3', @account_number);
 #SELECT @account_number;
 #------------------------------------------------------------------
+
+
+DELIMITER $$
+CREATE or REPLACE PROCEDURE Show_MyAccount(IN _username VARCHAR(50))
+BEGIN
+   (select account_user.account_no as account_no
+   from account_user
+   where account_user.username = _username)
+   UNION
+   (select account.account_no as account_no
+   from account
+   where account.opener_ID = _username);
+END$$
+GO
+
+
+DELIMITER $$
+CREATE or REPLACE PROCEDURE add_account_user(IN _account_no int(10),
+                                             IN _username VARCHAR(50), 
+                                             IN _conf_lable VARCHAR(1), 
+                                             IN _integrity_lable VARCHAR(1))
+BEGIN
+	INSERT INTO account_user(account_no, username, conf_lable, integrity_lable)
+	SELECT _account_no, _username, _conf_lable, _integrity_lable
+	FROM DUAL
+	WHERE NOT EXISTS(
+    	SELECT 1
+    	FROM account_user
+    	WHERE account_no = _account_no AND username = _username
+	)
+	LIMIT 1;
+END$$
+GO
+
+
+DELIMITER $$
+CREATE or REPLACE PROCEDURE five_withdraw(IN _account_no int(10))
+BEGIN
+	SELECT * FROM transaction
+	WHERE from_account_no = _account_no AND to_account_no = _account_no
+	ORDER BY timestamp DESC
+	LIMIT 5;
+END$$
+GO
+
+
+DELIMITER $$
+CREATE or REPLACE PROCEDURE five_Deposit(IN _account_no int(10))
+BEGIN
+	SELECT * FROM transaction
+	WHERE to_account_no = _account_no AND from_account_no <> _account_no
+	ORDER BY timestamp DESC
+	LIMIT 5;
+END$$
+GO
+
+
+DELIMITER $$
+CREATE or REPLACE PROCEDURE account_info(IN _account_no int(10))
+BEGIN
+	SELECT account.type, account.created_at, account.amount, account.opener_ID 
+    FROM account
+	WHERE from_account_no = _account_no;
+END$$
+GO
