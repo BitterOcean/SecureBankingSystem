@@ -26,7 +26,7 @@ CREATE TABLE Account (
 	conf_lable VARCHAR(1) CHECK(conf_lable IN ('1','2','3','4') ),
 	integrity_lable VARCHAR(1) CHECK(integrity_lable IN ('1','2','3','4')),
 	created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at DATETIME NULL,
 	FOREIGN KEY (opener_ID) REFERENCES User(username)
 );
 ALTER TABLE Account AUTO_INCREMENT = 1000000000;
@@ -67,7 +67,7 @@ CREATE TABLE Join_Request (
   desired_account_no INT(10) NOT NULL,
   `status` VARCHAR(1) NOT NULL DEFAULT '0' CHECK(`status` IN ('0', '1')), -- 0: pending, 1: accept
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
   FOREIGN KEY (applicant_username) REFERENCES User(username),
   FOREIGN KEY (desired_account_no) REFERENCES Account(account_no)
 );
