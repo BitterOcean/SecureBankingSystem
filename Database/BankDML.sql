@@ -298,12 +298,18 @@ FOR EACH ROW
 BEGIN
   -- update destination account balance
   UPDATE Account
-  SET amount = amount + NEW.amount
+  SET amount = CASE
+                  WHEN amount + NEW.amount >= 0 THEN amount + NEW.amount
+                  ELSE amount
+                END;
   WHERE account_no = NEW.to_account_no;
   -- update origin account balance
   IF (NEW.to_account_no <> NEW.from_account_no) THEN
     UPDATE Account
-    SET amount = amount - NEW.amount
+    SET amount = CASE
+                  WHEN amount - NEW.amount >= 0 THEN amount - NEW.amount
+                  ELSE amount
+                END;
     WHERE account_no = NEW.from_account_no;
   END IF;
 END$$

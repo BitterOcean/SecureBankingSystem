@@ -94,18 +94,6 @@ CREATE OR REPLACE TABLE Login_Request_Log (
 );
 
 
-DROP TABLE IF EXISTS Joint_Request_Log;
-CREATE TABLE Joint_Request_Log (
-  join_log_ID INT AUTO_INCREMENT PRIMARY KEY,
-  applicant_username VARCHAR(50) NOT NULL,
-  desired_account_no INT(10) NOT NULL,
-  conf_lable VARCHAR(1) NULL CHECK(conf_lable IN ('1','2','3','4') ),
-	integrity_lable VARCHAR(1) NULL CHECK(integrity_lable IN ('1','2','3','4')),
-  `type` VARCHAR(8) CHECK(`type` IN ('join', 'accept')),
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-
 DROP TABLE IF EXISTS Ban_Users;
 CREATE TABLE Ban_Users(
 	username VARCHAR(50) NOT NULL,
