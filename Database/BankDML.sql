@@ -64,11 +64,59 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS check_account_number;
+DELIMITER $$
+CREATE PROCEDURE check_account_number(
+	IN _account_no VARCHAR(10),
+  OUT _status INT
+)
+BEGIN
+	DECLARE NumOfAccounts DECIMAL DEFAULT 0;
+    SELECT COUNT(*)
+    INTO NumOfAccounts
+    FROM Account
+    WHERE account_no = _account_no;
+
+    IF NumOfAccounts > 0 THEN
+        SET _status = 1;
+    ELSE
+        SET _status = 0;
+    END IF;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS update_ban;
+DELIMITER $$
+CREATE PROCEDURE update_ban(
+	IN _username VARCHAR(50)
+)
+BEGIN
+	DECLARE _ban_times INT DEFAULT 0;
+	SELECT ban_times
+  INTO _ban_times
+  FROM Ban_Users
+  WHERE username = _username;
+
+  START TRANSACTION;
+	UPDATE Ban_Users
+  SET ban_times = _ban_times + 1,
+      started_at = CURRENT_TIMESTAMP,
+      finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
+  WHERE username = _username;
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS check_ban;
 DELIMITER $$
 CREATE PROCEDURE check_ban(
 	IN _username VARCHAR(50),
-  OUT _status INT
+  OUT _status INT,
+  OUT remaining_time INT
 )
 BEGIN
 	DECLARE ban DECIMAL DEFAULT 0;
@@ -78,11 +126,49 @@ BEGIN
   WHERE username = _username
     AND ban_times <> 0
     AND CURRENT_TIMESTAMP < finished_at;
+
+  SELECT TIME_TO_SEC(TIMEDIFF(finished_at, CURRENT_TIMESTAMP)) diff
+  INTO remaining_time
+  FROM Ban_Users
+  WHERE username = _username;
+
   IF ban > 0 THEN
       SET _status = 1;
   ELSE
       SET _status = 0;
+      SET remaining_time = 0;
   END IF;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_account;
+DELIMITER $$
+CREATE PROCEDURE add_account(
+	IN _username VARCHAR(50),
+  IN _type VARCHAR(30),
+  IN _amount DECIMAL(15, 4),
+  IN _conf_lable VARCHAR(1),
+  IN _integrity_lable VARCHAR(1),
+  OUT _account_no VARCHAR(10)
+)
+BEGIN
+	DECLARE AC INT DEFAULT 1000000000;
+	WHILE (SELECT COUNT(*)
+         FROM Account
+         WHERE AC in (SELECT CAST(account_no AS INT) FROM Account)) DO
+		SET AC = AC + 1;
+  END WHILE;
+  SELECT CAST(AC AS CHAR(10))
+  INTO _account_no;
+
+	START TRANSACTION;
+	INSERT INTO Account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
+	  VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
+  INSERT INTO Account_User(username, account_no, conf_lable, integrity_lable)
+    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
+	COMMIT;
 END$$
 
 DELIMITER ;
@@ -92,7 +178,7 @@ DROP PROCEDURE IF EXISTS create_join_request;
 DELIMITER $$
 CREATE PROCEDURE create_join_request(
   IN _applicant_username VARCHAR(50),
-	IN _desired_account_no INT(10),
+	IN _desired_account_no INT(10)
 )
 BEGIN
 	START TRANSACTION;
@@ -110,7 +196,7 @@ CREATE PROCEDURE accept_join_request(
 	IN _username VARCHAR(50),
   IN _account_no INT(10),
   IN _conf_lable VARCHAR(1),
-  IN _integrity_lable VARCHAR(1),
+  IN _integrity_lable VARCHAR(1)
 )
 BEGIN
 	START TRANSACTION;
@@ -153,8 +239,7 @@ BEGIN
     to_account_no,
     amount,
     `status`
-    )
-	  VALUES (
+    ) VALUES (
       _username,
       _from_account_no,
       _to_account_no,
@@ -301,15 +386,15 @@ BEGIN
   SET amount = CASE
                   WHEN amount + NEW.amount >= 0 THEN amount + NEW.amount
                   ELSE amount
-                END;
+                END
   WHERE account_no = NEW.to_account_no;
   -- update origin account balance
-  IF (NEW.to_account_no <> NEW.from_account_no) THEN
+  IF NEW.to_account_no <> NEW.from_account_no THEN
     UPDATE Account
     SET amount = CASE
                   WHEN amount - NEW.amount >= 0 THEN amount - NEW.amount
                   ELSE amount
-                END;
+                END
     WHERE account_no = NEW.from_account_no;
   END IF;
 END$$
