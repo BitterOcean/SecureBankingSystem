@@ -278,12 +278,96 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS Show_MyAccount;
+DELIMITER $$
+CREATE PROCEDURE Show_MyAccount(IN _username VARCHAR(50))
+BEGIN
+    (
+        SELECT account_user.account_no AS account_no
+        FROM Account_User
+        WHERE account_user.username = _username
+    )
+   UNION
+    (
+        SELECT account.account_no AS account_no
+        FROM Account
+        WHERE account.opener_ID = _username
+    );
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_account_user;
+DELIMITER $$
+CREATE PROCEDURE add_account_user(
+    IN _account_no INT(10),
+    IN _username VARCHAR(50), 
+    IN _conf_lable VARCHAR(1), 
+    IN _integrity_lable VARCHAR(1))
+BEGIN
+	INSERT INTO account_user(account_no, username, conf_lable, integrity_lable)
+	SELECT _account_no, _username, _conf_lable, _integrity_lable
+	FROM DUAL
+	WHERE NOT EXISTS(
+    	SELECT 1
+    	FROM Account_User
+    	WHERE account_no = _account_no AND username = _username
+	)
+	LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS five_withdraw;
+DELIMITER $$
+CREATE PROCEDURE five_withdraw(IN _account_no INT(10))
+BEGIN
+	SELECT * 
+    FROM `Transaction`
+	WHERE from_account_no = _account_no
+        AND to_account_no = _account_no
+	ORDER BY TIMESTAMP DESC
+	LIMIT 5;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS five_Deposit;
+DELIMITER $$
+CREATE PROCEDURE five_Deposit(IN _account_no INT(10))
+BEGIN
+	SELECT * 
+    FROM `Transaction`
+	WHERE to_account_no = _account_no
+        AND from_account_no <> _account_no
+	ORDER BY TIMESTAMP DESC
+	LIMIT 5;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS account_info;
+DELIMITER $$
+CREATE PROCEDURE account_info(IN _account_no INT(10))
+BEGIN
+	SELECT `type`, created_at, amount, opener_ID 
+    FROM Account
+	WHERE from_account_no = _account_no;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS add_signup_log;
 DELIMITER $$
 CREATE PROCEDURE add_signup_log(
-	IN _username VARCHAR(50),
-  IN _password VARCHAR(200),
-  IN _status VARCHAR(1)
+    IN _username VARCHAR(50),
+    IN _password VARCHAR(200),
+    IN _status VARCHAR(1)
 )
 BEGIN
 	START TRANSACTION;
