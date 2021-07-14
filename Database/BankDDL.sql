@@ -52,7 +52,6 @@ CREATE TABLE `Transaction` (
   from_account_no INT(10) NOT NULL,
   to_account_no INT(10) NOT NULL,
   amount DECIMAL(7, 4) NOT NULL,
-  `status` VARCHAR(1) CHECK(`status` IN ('1', '0') ),
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (username) REFERENCES User(username),
   FOREIGN KEY (from_account_no) REFERENCES Account(account_no),

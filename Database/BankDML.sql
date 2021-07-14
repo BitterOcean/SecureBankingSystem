@@ -237,14 +237,12 @@ BEGIN
     username,
     from_account_no,
     to_account_no,
-    amount,
-    `status`
+    amount
     ) VALUES (
       _username,
       _from_account_no,
       _to_account_no,
-      _amount,
-      '1'
+      _amount
     );
 	COMMIT;
 END$$
@@ -267,14 +265,12 @@ BEGIN
     username,
     from_account_no,
     to_account_no,
-    amount,
-    `status`
+    amount
     ) VALUES (
       _username,
       _account_no,
       _account_no,
-      (0 - _amount),
-      '1'
+      (0 - _amount)
     );
 	COMMIT;
 END$$
