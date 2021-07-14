@@ -22,7 +22,7 @@ CREATE TABLE Account (
       'Current account',
       'Gharz al-Hasna saving account'
     )),
-  amount DECIMAL(15, 4) NOT NULL,
+  amount DECIMAL(19, 4) NOT NULL,
 	conf_lable VARCHAR(1) CHECK(conf_lable IN ('1','2','3','4') ),
 	integrity_lable VARCHAR(1) CHECK(integrity_lable IN ('1','2','3','4')),
 	created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -51,7 +51,7 @@ CREATE TABLE `Transaction` (
   username VARCHAR(50) NOT NULL,
   from_account_no INT(10) NOT NULL,
   to_account_no INT(10) NOT NULL,
-  amount DECIMAL(7, 4) NOT NULL,
+  amount DECIMAL(11, 4) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (username) REFERENCES User(username),
   FOREIGN KEY (from_account_no) REFERENCES Account(account_no),
