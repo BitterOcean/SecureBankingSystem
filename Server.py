@@ -1,3 +1,4 @@
+import os
 import json
 import base64
 import socket
@@ -6,6 +7,7 @@ import _thread
 import secrets
 import hashlib
 import mysql.connector
+from dotenv import load_dotenv
 from Crypto import Random
 from datetime import datetime
 from Crypto.Cipher import AES
@@ -17,6 +19,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
 
 count = 0
+load_dotenv()
 policy = PasswordPolicy.from_names(
     length = 10,  # min length: 8
     uppercase = 1,  # need min. 2 uppercase letters
@@ -28,8 +31,8 @@ policy = PasswordPolicy.from_names(
 connection = mysql.connector.connect(
     host = 'localhost',
     database = 'securebankingsystem',
-    user = 'root',
-    password = '7731'
+    user = os.getenv('DATABASE_USERNAME'),
+    password = os.getenv('DATABASE_PASSWORD')
 )
 
 def client_service(client):
