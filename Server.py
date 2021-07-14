@@ -6,6 +6,7 @@ import _thread
 import secrets
 import hashlib
 import mysql.connector
+import os
 from Crypto import Random
 from datetime import datetime
 from Crypto.Cipher import AES
@@ -15,6 +16,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
+from dotenv import load_dotenv
 
 count = 0
 policy = PasswordPolicy.from_names(
@@ -25,11 +27,12 @@ policy = PasswordPolicy.from_names(
     nonletters = 1,  # need min. 2 non-letter characters (digits, specials, anything)
     entropybits = 30,  # need a password that has minimum 30 entropy bits (the power of its alphabet)
 )
+load_dotenv()
 connection = mysql.connector.connect(
     host = 'localhost',
     database = 'securebankingsystem',
-    user = 'pynative',
-    password = 'pynative@#29'
+    user = os.getenv('DATABASE_USERNAME'),
+    password = os.getenv('DATABASE_PASSWORD')
 )
 
 def client_service(client):
