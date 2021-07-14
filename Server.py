@@ -28,8 +28,8 @@ policy = PasswordPolicy.from_names(
 connection = mysql.connector.connect(
     host = 'localhost',
     database = 'securebankingsystem',
-    user = 'pynative',
-    password = 'pynative@#29'
+    user = 'root',
+    password = '7731'
 )
 
 def client_service(client):
