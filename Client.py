@@ -46,26 +46,25 @@ def Login(command, client, key):
     elif replay[0] == "E1":
         print("ERROR: Password do not match. Please try again")
         return 0  # Login failed
-    '''elif replay[0] == "ban":
-        print("ERROR: Your Account is ban for {} minute. try again later".format(replay[2]))
-        return 0  # Login failed'''
+    elif replay[0] == "ban":
+        print("ERROR: Your Account is ban for {} seconds. try again later".format(replay[1]))
+        return 0  # Login failed
 
 def Create(command, cmd, client, key):
     conf_label = ["TopSecret", "Secret", "Confidential", "Unclassified"]
     integrity_label = ["VeryTrusted", "Trusted", "SlightlyTrusted", "Untrusted"]
-    account_type = ["Short-term saving account", "Long-term saving account", "Current account", "Gharz al-Hasna saving account"]
 
-    if ~(0 <= int(cmd[1]) <= 3):
-        print()
+    if not (0 <= int(cmd[1]) <= 3):
+        print("ERROR: Account type is out of range!!! Please try again")
         return 0
     if float(cmd[2]) < 0:
-        print()
+        print("ERROR: Amount of money received is negative. Please try again")
         return 0
     if cmd[3] not in conf_label:
-        print()
+        print("ERROR: Confidentiality label is not defined, Please try again and enter an allowable Confidentiality label")
         return 0
     if cmd[4] not in integrity_label:
-        print()
+        print("ERROR: Integrity label is not defined. Please try again and enter an allowable integrity label")
         return 0
 
     command = encrypt(command, key)
@@ -74,7 +73,7 @@ def Create(command, cmd, client, key):
     replay = client.recv(1024)
     replay = replay.decode('utf-8')
     replay = decrypt(replay, key)
-    print()
+    print("Your account has been created successfully!!, Your account number is: {}".format(replay))
 
 def key_exchange(client):
     backend = default_backend()
@@ -161,7 +160,12 @@ if __name__ == '__main__':
                     print(help_message2)
 
                 elif cmd[0] == "Exit" and len(cmd) == 1:
-
+                    command = encrypt(command, session_key)
+                    client.send(command.encode('utf-8'))
+                    replay = client.recv(1024)
+                    replay = replay.decode('utf-8')
+                    replay = decrypt(replay, session_key)
+                    print(replay)
                     break
 
                 else:
@@ -181,7 +185,12 @@ if __name__ == '__main__':
                     print(help_message1)
 
                 elif cmd[0] == "Exit" and len(cmd) == 1:
-
+                    command = encrypt(command, session_key)
+                    client.send(command.encode('utf-8'))
+                    replay = client.recv(1024)
+                    replay = replay.decode('utf-8')
+                    replay = decrypt(replay, session_key)
+                    print(replay)
                     break
 
                 else:

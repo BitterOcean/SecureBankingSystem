@@ -40,12 +40,14 @@ def client_service(client):
     login = False
     username = ""
     data = ""
+    wrong_password = 10
 
     session_key = key_exchange(client)
     while True:
         try:
             data = client.recv(1024)
-        except:
+            data = data.decode('utf-8')
+        except: #...
             if not data:
                 c_IP, c_port = client.getpeername()
                 print('Client with ip = {} and port = {} has been disconnected at time {}.'.format(c_IP, c_port, str(datetime.now())))
@@ -53,51 +55,83 @@ def client_service(client):
                 count = count - 1
                 return 1
 
-        data = data.decode('utf-8')
         data = decrypt(data, session_key)
         command = data.split()
 
         if login:
             if command[0] == "Create" and len(command) == 5:
-                print()
+                conf_label = ["TopSecret", "Secret", "Confidential", "Unclassified"]
+                integrity_label = ["VeryTrusted", "Trusted", "SlightlyTrusted", "Untrusted"]
+                account_type = ["Short-term saving account", "Long-term saving account", "Current account",
+                                "Gharz al-Hasna saving account"]
+
+                account_no = add_account(username, account_type[int(command[1])], float(command[2]),
+                                         str(conf_label.index(command[3]) + 1),
+                                         str(integrity_label.index(command[4]) + 1))
+
+                msg = encrypt(account_no, session_key)
+                client.send(msg.encode('utf-8'))
 
             elif command[0] == "Exit" and len(command) == 1:
+                msg = "Good bay ..."
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
                 break
 
         else:
             if command[0] == "Signup" and len(command) == 3:
+                status = 0
                 if check_username(command[1]) == 0:
                     pass_str = is_password_strong(command[1], command[2])
                     if pass_str == '1':
                         add_user(command[1], command[2])
                         msg = "ok " + str(datetime.now())
+                        status = 1
                     else:
                         msg = "E1 " + str(datetime.now()) + " " + pass_str
                 else:
                     msg = "E0 " + str(datetime.now())
 
                 # Signup log
+                add_signup_log(command[1], command[2], status)
 
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
 
             elif command[0] == "Login" and len(command) == 3:
+                status = 0
                 if check_username(command[1]) == 1:
-                    if check_password(command[1], command[2]):
-                        login = True
-                        username = command[1]
-                        msg = "ok " + str(datetime.now())
+                    is_ban, ban_time = check_ban(command[1])
+                    if not is_ban:
+                        if check_password(command[1], command[2]):
+                            login = True
+                            username = command[1]
+                            wrong_password = 10
+                            msg = "ok " + str(datetime.now())
+                            status = 1
+                        else:
+                            msg = "E1 " + str(datetime.now())
+                            wrong_password += -1
                     else:
-                        msg = "E1 " + str(datetime.now())
+                        msg = "ban " + str(ban_time) + " " + str(datetime.now())
                 else:
                     msg = "E0 " + str(datetime.now())
 
+                if (wrong_password == 5 or wrong_password == 0) and (not check_ban(command[1])[0]):
+                    update_ban(command[1])
+                #elif  wrong_password < 0:
+                    #honeypot
+
                 # Login log
+                add_login_log(command[1], command[2], status, client.getpeername()[0], client.getpeername()[1])
 
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
 
             elif command[0] == "Exit" and len(command) == 1:
+                msg = "Good bay ..."
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
                 break
 
     client.close()
@@ -140,6 +174,29 @@ def add_user(username, password):
     cursor.callproc('add_user', args)
     cursor.close()
 
+def add_signup_log(username, password, status):
+    cursor = connection.cursor()
+    salt = ''.join(secrets.choice(string.ascii_letters) for _ in range(25))
+    hash_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    hash_password = str(hash_password)
+    args = []
+    args.append(username)
+    args.append(hash_password)
+    args.append(salt)
+    args.append(status)
+    cursor.callproc('add_signup_log', args)
+    cursor.close()
+
+def check_ban(username):
+    cursor = connection.cursor()
+    args = []
+    args.append(username)
+    args.append(0)
+    args.append(0)
+    result_args = cursor.callproc('check_ban', args)
+    cursor.close()
+    return result_args[1], result_args[2]
+
 def check_password(username, password):
     cursor = connection.cursor()
     args = []
@@ -155,6 +212,41 @@ def check_password(username, password):
         return 1
     cursor.close()
     return 0
+
+def update_ban(username):
+    cursor = connection.cursor()
+    args = []
+    args.append(username)
+    cursor.callproc('update_ban', args)
+    cursor.close()
+
+def add_login_log(username, password, status, ip, port):
+    cursor = connection.cursor()
+    salt = ''.join(secrets.choice(string.ascii_letters) for _ in range(25))
+    hash_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    hash_password = str(hash_password)
+    args = []
+    args.append(username)
+    args.append(hash_password)
+    args.append(salt)
+    args.append(status)
+    args.append(ip)
+    args.append(port)
+    cursor.callproc('add_login_log', args)
+    cursor.close()
+
+def add_account(username, account_type, amount, conf_label, integrity_label):
+    cursor = connection.cursor()
+    args = []
+    args.append(username)
+    args.append(account_type)
+    args.append(amount)
+    args.append(conf_label)
+    args.append(integrity_label)
+    args.append(0)
+    result_args = cursor.callproc('add_account', args)
+    cursor.close()
+    return result_args[5]
 
 def key_exchange(client):
     backend = default_backend()

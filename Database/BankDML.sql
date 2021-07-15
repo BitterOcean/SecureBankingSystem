@@ -189,8 +189,8 @@ BEGIN
 	START TRANSACTION;
 	INSERT INTO account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
 	VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
-    INSERT INTO account_user(username, account_no, conf_lable, integrity_lable)
-    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
+    /*INSERT INTO account_user(username, account_no, conf_lable, integrity_lable)
+    VALUES (_username, _account_no, _conf_lable, _integrity_lable);*/
 	COMMIT;
 END$$
 
@@ -199,3 +199,47 @@ DELIMITER ;
 #CALL add_account('mazrouee99', 'Short-term saving account',1250.26 ,'2' ,'3', @account_number);
 #SELECT @account_number;
 #------------------------------------------------------------------
+/*DROP PROCEDURE IF EXISTS add_login_log;
+DELIMITER $$
+CREATE PROCEDURE add_login_log(
+	IN _username VARCHAR(50),
+  IN _password VARCHAR(200),
+  IN _status VARCHAR(1),
+  IN _ip VARCHAR(20),
+  IN _port VARCHAR(6)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Login_Request_Log (username, `password`, `status`, ip, port)
+	  VALUES (_username, _password, _status, _ip, _port);
+	COMMIT;
+END$$
+
+DELIMITER ;
+#------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS add_signup_log;
+DELIMITER $$
+CREATE PROCEDURE add_signup_log(
+    IN _username VARCHAR(50),
+    IN _password VARCHAR(200),
+    IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Signup_Request_Log (username, `password`, `status`)
+	  VALUES (_username, _password, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;*/
+#------------------------------------------------------------------
+DROP TRIGGER IF EXISTS auto_insert_ban_user;
+DELIMITER $$
+CREATE TRIGGER auto_insert_ban_user
+AFTER INSERT
+ON User
+FOR EACH ROW
+  INSERT INTO Ban_Users ( username, ban_times, started_at, finished_at )
+    VALUES(NEW.username, 0, NULL, NULL);
+$$
+DELIMITER ;
