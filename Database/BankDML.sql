@@ -199,19 +199,20 @@ DELIMITER ;
 #CALL add_account('mazrouee99', 'Short-term saving account',1250.26 ,'2' ,'3', @account_number);
 #SELECT @account_number;
 #------------------------------------------------------------------
-/*DROP PROCEDURE IF EXISTS add_login_log;
+DROP PROCEDURE IF EXISTS add_login_log;
 DELIMITER $$
 CREATE PROCEDURE add_login_log(
 	IN _username VARCHAR(50),
   IN _password VARCHAR(200),
-  IN _status VARCHAR(1),
+  IN _salt VARCHAR(100),
   IN _ip VARCHAR(20),
-  IN _port VARCHAR(6)
+  IN _port VARCHAR(6),
+  IN _status VARCHAR(1)
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO Login_Request_Log (username, `password`, `status`, ip, port)
-	  VALUES (_username, _password, _status, _ip, _port);
+	INSERT INTO Login_Request_Log (username, `password`, salt, ip, port, `status`)
+	  VALUES (_username, _password, _salt, _ip, _port, _status);
 	COMMIT;
 END$$
 
@@ -222,16 +223,17 @@ DELIMITER $$
 CREATE PROCEDURE add_signup_log(
     IN _username VARCHAR(50),
     IN _password VARCHAR(200),
+    IN _salt VARCHAR(100),
     IN _status VARCHAR(1)
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO Signup_Request_Log (username, `password`, `status`)
-	  VALUES (_username, _password, _status);
+	INSERT INTO Signup_Request_Log (username, `password`, salt, `status`)
+	  VALUES (_username, _password, salt, _status);
 	COMMIT;
 END$$
 
-DELIMITER ;*/
+DELIMITER ;
 #------------------------------------------------------------------
 DROP TRIGGER IF EXISTS auto_insert_ban_user;
 DELIMITER $$
