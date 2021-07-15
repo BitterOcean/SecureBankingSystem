@@ -96,6 +96,7 @@ def client_service(client):
                       "Untrusted"      : '4',
                     }
                 """
+                status = '0'
                 if check_account_number(int(command[1])) == 1:  # from_account_no exists
                     if check_account_number(int(command[2])) == 1:  # to_account_no exists
                         if is_account_owner(username, command[1]) or (  # DAC
@@ -108,6 +109,7 @@ def client_service(client):
                             if check_balance(int(command[1]), int(command[3])):  # enough balance
                                 deposit(username, int(command[1]), int(command[2]), int(command[3]))
                                 msg = "ok " + str(datetime.now())
+                                status = '1'
                             else:
                                 msg = "E3 " + str(datetime.now())  # NOT enough balance
                         else:
@@ -116,6 +118,9 @@ def client_service(client):
                         msg = "E1 " + str(datetime.now())  # to_account_no exists
                 else:
                     msg = "E0 " + str(datetime.now())  # from_account_no NOT exists
+
+                add_deposit_log(username, command[1], command[2], command[3], client.getpeername()[0],
+                                client.getpeername()[1], status)
 
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
@@ -140,6 +145,7 @@ def client_service(client):
                       "Untrusted"      : '4',
                     }
                 """
+                status = '0'
                 if check_account_number(int(command[1])) == 1:  # account_no exists
                     if is_account_owner(username, command[1]) or (  # DAC
                             # MAC
@@ -151,6 +157,7 @@ def client_service(client):
                         if check_balance(int(command[1]), int(command[2])):  # enough balance
                             withdraw(username, int(command[1]), int(command[2]))
                             msg = "ok " + str(datetime.now())
+                            status = '1'
                         else:
                             msg = "E2 " + str(datetime.now())  # NOT enough balance
                     else:
@@ -158,11 +165,14 @@ def client_service(client):
                 else:
                     msg = "E0 " + str(datetime.now())  # account_no NOT exists
 
+                add_withdraw_log(username, command[1], command[2], client.getpeername()[0], client.getpeername()[1],
+                                 status)
+
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
 
             elif command[0] == "Exit" and len(command) == 1:
-                msg = "Good bay ..."
+                msg = "Good bye ..."
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
                 break
@@ -209,7 +219,7 @@ def client_service(client):
                 if (wrong_password == 5 or wrong_password == 0) and (not check_ban(command[1])[0]):
                     update_ban(command[1])
                 # elif  wrong_password < 0:
-                # honeypot
+                    # honeypot
 
                 # Login log
                 add_login_log(command[1], command[2], client.getpeername()[0], client.getpeername()[1], str(status))
@@ -218,7 +228,7 @@ def client_service(client):
                 client.send(msg.encode('utf-8'))
 
             elif command[0] == "Exit" and len(command) == 1:
-                msg = "Good bay ..."
+                msg = "Good bye ..."
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
                 break
@@ -236,6 +246,37 @@ def add_account(username, account_type, amount, conf_label, integrity_label):
     result_args = cursor.callproc('add_account', args)
     cursor.close()
     return result_args[5]
+
+
+def add_deposit_log(username, from_account_no, to_account_no, amount, ip, port, status):
+    """
+    :param username: username of the client who send deposit request VARCHAR(50)
+    :param from_account_no: origin account number INT(20)
+    :param to_account_no: destination account number INT(20)
+    :param amount: DECIMAL(11, 4)
+    :param ip: VARCHAR(20)
+    :param port: VARCHAR(20)
+    :param status: status code VARCHAR(1) check(0: failure, 1: successful)
+    """
+    cursor = connection.cursor()
+    args = [username, from_account_no, to_account_no, amount, ip, port, status]
+    cursor.callproc('add_deposit_log', args)
+    cursor.close()
+
+
+def add_withdraw_log(username, account_no, amount, ip, port, status):
+    """
+    :param username: username of the client who send deposit request VARCHAR(50)
+    :param account_no: destination account number INT(20)
+    :param amount: DECIMAL(11, 4)
+    :param ip: VARCHAR(20)
+    :param port: VARCHAR(20)
+    :param status: status code VARCHAR(1) check(0: failure, 1: successful)
+    """
+    cursor = connection.cursor()
+    args = [username, account_no, amount, ip, port, status]
+    cursor.callproc('add_withdraw_log', args)
+    cursor.close()
 
 
 def add_login_log(username, password, status, ip, port):
