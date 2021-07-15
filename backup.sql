@@ -29,6 +29,7 @@ CREATE TABLE `Accept_Request_Log` (
   `integrity_lable` varchar(1) DEFAULT NULL,
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
+  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`accept_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -151,37 +152,6 @@ LOCK TABLES `Ban_Users` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `Create_Request_Log`
---
-
-DROP TABLE IF EXISTS `Create_Request_Log`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `Create_Request_Log` (
-  `created_log_ID` int(11) NOT NULL AUTO_INCREMENT,
-  `opener_ID` varchar(50) DEFAULT NULL,
-  `type` varchar(30) DEFAULT NULL,
-  `amount` decimal(19,4) DEFAULT NULL,
-  `conf_lable` varchar(1) DEFAULT NULL,
-  `integrity_lable` varchar(1) DEFAULT NULL,
-  `ip` varchar(20) DEFAULT NULL,
-  `port` varchar(20) DEFAULT NULL,
-  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
-  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`created_log_ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Create_Request_Log`
---
-
-LOCK TABLES `Create_Request_Log` WRITE;
-/*!40000 ALTER TABLE `Create_Request_Log` DISABLE KEYS */;
-/*!40000 ALTER TABLE `Create_Request_Log` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `Deposit_Request_Log`
 --
 
@@ -196,6 +166,7 @@ CREATE TABLE `Deposit_Request_Log` (
   `amount` decimal(11,4) DEFAULT NULL,
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
+  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`deposit_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -273,6 +244,7 @@ CREATE TABLE `Join_Request_Log` (
   `desired_account_no` int(50) DEFAULT NULL,
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
+  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`join_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -299,9 +271,9 @@ CREATE TABLE `Login_Request_Log` (
   `username` varchar(100) DEFAULT NULL,
   `password` varchar(300) DEFAULT NULL,
   `salt` varchar(100) DEFAULT NULL,
-  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
+  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`login_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -329,6 +301,7 @@ CREATE TABLE `ShowAccount_Request_Log` (
   `account_no` int(50) DEFAULT NULL,
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
+  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`showAccount_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -355,6 +328,7 @@ CREATE TABLE `ShowMyAccount_Request_Log` (
   `username` varchar(50) DEFAULT NULL,
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
+  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`showMyAccount_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -524,6 +498,7 @@ CREATE TABLE `Withdraw_Request_Log` (
   `amount` decimal(11,4) DEFAULT NULL,
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
+  `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`deposit_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -547,4 +522,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-07-15 20:31:30
+-- Dump completed on 2021-07-15 21:21:49
