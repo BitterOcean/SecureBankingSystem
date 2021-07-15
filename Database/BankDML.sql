@@ -97,19 +97,42 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS add_create_log;
+DELIMITER $$
+CREATE PROCEDURE add_create_log(
+	IN _opener_ID VARCHAR(50),
+  IN _type VARCHAR(30),
+  IN _amount DECIMAL(19, 4),
+	IN _conf_lable VARCHAR(1),
+	IN _integrity_lable VARCHAR(1),
+  IN _ip VARCHAR(20),
+	IN _port VARCHAR(20),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Create_Request_Log (opener_ID, `type`, amount, conf_lable, integrity_lable, ip, port, `status`)
+	  VALUES (_opener_ID, _type, _amount, _conf_lable, _integrity_lable, _ip, _port, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS add_login_log;
 DELIMITER $$
 CREATE PROCEDURE add_login_log(
 	IN _username VARCHAR(50),
   IN _password VARCHAR(200),
+  IN _salt VARCHAR(100),
   IN _status VARCHAR(1),
   IN _ip VARCHAR(20),
   IN _port VARCHAR(6)
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO Login_Request_Log (username, `password`, `status`, ip, port)
-	  VALUES (_username, _password, _status, _ip, _port);
+	INSERT INTO Login_Request_Log (username, `password`, salt, `status`, ip, port)
+	  VALUES (_username, _password, _salt, _status, _ip, _port);
 	COMMIT;
 END$$
 
@@ -121,12 +144,13 @@ DELIMITER $$
 CREATE PROCEDURE add_signup_log(
     IN _username VARCHAR(50),
     IN _password VARCHAR(200),
+    IN _salt VARCHAR(100),
     IN _status VARCHAR(1)
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO Signup_Request_Log (username, `password`, `status`)
-	  VALUES (_username, _password, _status);
+	INSERT INTO Signup_Request_Log (username, `password`, salt, `status`)
+	  VALUES (_username, _password, salt, _status);
 	COMMIT;
 END$$
 

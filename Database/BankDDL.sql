@@ -26,6 +26,9 @@ DROP TABLE IF EXISTS Create_Request_Log;
 DROP TABLE IF EXISTS Join_Request_Log;
 DROP TABLE IF EXISTS Accept_Request_Log;
 DROP TABLE IF EXISTS ShowMyAccount_Request_Log;
+DROP TABLE IF EXISTS ShowAccount_Request_Log;
+DROP TABLE IF EXISTS Deposit_Request_Log;
+DROP TABLE IF EXISTS Withdraw_Request_Log;
 DROP TABLE IF EXISTS Ban_Users;
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -98,6 +101,7 @@ CREATE TABLE Signup_Request_Log (
   signup_log_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NULL,
   `password` VARCHAR(300) NULL,
+  salt VARCHAR(100) NULL,
 	`status` VARCHAR(1) CHECK(`status` IN ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -107,6 +111,7 @@ CREATE TABLE Login_Request_Log (
   login_log_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NULL,
 	`password` VARCHAR(300) NULL,
+  salt VARCHAR(100) NULL,
 	`status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
 	ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
@@ -116,12 +121,13 @@ CREATE TABLE Login_Request_Log (
 
 CREATE TABLE Create_Request_Log(
   created_log_ID INT AUTO_INCREMENT PRIMARY KEY,
-  account_no INT(10) NULL,
   opener_ID VARCHAR(50) NULL,
   `type` VARCHAR(30) NULL,
   amount DECIMAL(19, 4) NULL,
 	conf_lable VARCHAR(1) NULL,
 	integrity_lable VARCHAR(1) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
   `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
 	created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -131,6 +137,8 @@ CREATE TABLE Join_Request_Log (
   join_log_ID INT AUTO_INCREMENT PRIMARY KEY,
   applicant_username VARCHAR(50) NULL,
   desired_account_no INT(50) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -140,6 +148,8 @@ CREATE TABLE Accept_Request_Log (
   applicant_username VARCHAR(50) NULL,
   conf_lable VARCHAR(1) NULL,
 	integrity_lable VARCHAR(1) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -147,6 +157,41 @@ CREATE TABLE Accept_Request_Log (
 CREATE TABLE ShowMyAccount_Request_Log (
   showMyAccount_log_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE ShowAccount_Request_Log (
+  showAccount_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NULL,
+  account_no INT(50) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE Deposit_Request_Log (
+  deposit_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NULL,
+  from_account_no INT(20) NULL,
+  to_account_no INT(20) NULL,
+  amount DECIMAL(11, 4) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE Withdraw_Request_Log (
+  deposit_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NULL,
+  account_no INT(20) NULL,
+  amount DECIMAL(11, 4) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

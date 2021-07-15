@@ -27,6 +27,8 @@ CREATE TABLE `Accept_Request_Log` (
   `applicant_username` varchar(50) DEFAULT NULL,
   `conf_lable` varchar(1) DEFAULT NULL,
   `integrity_lable` varchar(1) DEFAULT NULL,
+  `ip` varchar(20) DEFAULT NULL,
+  `port` varchar(20) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`accept_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -157,12 +159,13 @@ DROP TABLE IF EXISTS `Create_Request_Log`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `Create_Request_Log` (
   `created_log_ID` int(11) NOT NULL AUTO_INCREMENT,
-  `account_no` int(10) DEFAULT NULL,
   `opener_ID` varchar(50) DEFAULT NULL,
   `type` varchar(30) DEFAULT NULL,
   `amount` decimal(19,4) DEFAULT NULL,
   `conf_lable` varchar(1) DEFAULT NULL,
   `integrity_lable` varchar(1) DEFAULT NULL,
+  `ip` varchar(20) DEFAULT NULL,
+  `port` varchar(20) DEFAULT NULL,
   `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`created_log_ID`)
@@ -176,6 +179,35 @@ CREATE TABLE `Create_Request_Log` (
 LOCK TABLES `Create_Request_Log` WRITE;
 /*!40000 ALTER TABLE `Create_Request_Log` DISABLE KEYS */;
 /*!40000 ALTER TABLE `Create_Request_Log` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `Deposit_Request_Log`
+--
+
+DROP TABLE IF EXISTS `Deposit_Request_Log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `Deposit_Request_Log` (
+  `deposit_log_ID` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) DEFAULT NULL,
+  `from_account_no` int(20) DEFAULT NULL,
+  `to_account_no` int(20) DEFAULT NULL,
+  `amount` decimal(11,4) DEFAULT NULL,
+  `ip` varchar(20) DEFAULT NULL,
+  `port` varchar(20) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`deposit_log_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `Deposit_Request_Log`
+--
+
+LOCK TABLES `Deposit_Request_Log` WRITE;
+/*!40000 ALTER TABLE `Deposit_Request_Log` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Deposit_Request_Log` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -239,6 +271,8 @@ CREATE TABLE `Join_Request_Log` (
   `join_log_ID` int(11) NOT NULL AUTO_INCREMENT,
   `applicant_username` varchar(50) DEFAULT NULL,
   `desired_account_no` int(50) DEFAULT NULL,
+  `ip` varchar(20) DEFAULT NULL,
+  `port` varchar(20) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`join_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -264,6 +298,7 @@ CREATE TABLE `Login_Request_Log` (
   `login_log_ID` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(100) DEFAULT NULL,
   `password` varchar(300) DEFAULT NULL,
+  `salt` varchar(100) DEFAULT NULL,
   `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `ip` varchar(20) DEFAULT NULL,
   `port` varchar(20) DEFAULT NULL,
@@ -282,6 +317,33 @@ LOCK TABLES `Login_Request_Log` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `ShowAccount_Request_Log`
+--
+
+DROP TABLE IF EXISTS `ShowAccount_Request_Log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ShowAccount_Request_Log` (
+  `showAccount_log_ID` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) DEFAULT NULL,
+  `account_no` int(50) DEFAULT NULL,
+  `ip` varchar(20) DEFAULT NULL,
+  `port` varchar(20) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`showAccount_log_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ShowAccount_Request_Log`
+--
+
+LOCK TABLES `ShowAccount_Request_Log` WRITE;
+/*!40000 ALTER TABLE `ShowAccount_Request_Log` DISABLE KEYS */;
+/*!40000 ALTER TABLE `ShowAccount_Request_Log` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `ShowMyAccount_Request_Log`
 --
 
@@ -291,6 +353,8 @@ DROP TABLE IF EXISTS `ShowMyAccount_Request_Log`;
 CREATE TABLE `ShowMyAccount_Request_Log` (
   `showMyAccount_log_ID` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(50) DEFAULT NULL,
+  `ip` varchar(20) DEFAULT NULL,
+  `port` varchar(20) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`showMyAccount_log_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -316,6 +380,7 @@ CREATE TABLE `Signup_Request_Log` (
   `signup_log_ID` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(100) DEFAULT NULL,
   `password` varchar(300) DEFAULT NULL,
+  `salt` varchar(100) DEFAULT NULL,
   `status` varchar(1) DEFAULT NULL CHECK (`status` in ('1','0')),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`signup_log_ID`)
@@ -444,6 +509,34 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Table structure for table `Withdraw_Request_Log`
+--
+
+DROP TABLE IF EXISTS `Withdraw_Request_Log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `Withdraw_Request_Log` (
+  `deposit_log_ID` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) DEFAULT NULL,
+  `account_no` int(20) DEFAULT NULL,
+  `amount` decimal(11,4) DEFAULT NULL,
+  `ip` varchar(20) DEFAULT NULL,
+  `port` varchar(20) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`deposit_log_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `Withdraw_Request_Log`
+--
+
+LOCK TABLES `Withdraw_Request_Log` WRITE;
+/*!40000 ALTER TABLE `Withdraw_Request_Log` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Withdraw_Request_Log` ENABLE KEYS */;
+UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -454,4 +547,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-07-15 19:50:15
+-- Dump completed on 2021-07-15 20:31:30
