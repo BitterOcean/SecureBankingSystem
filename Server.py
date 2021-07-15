@@ -85,8 +85,8 @@ def client_service(client):
                       "Untrusted"      : '4',
                     }
                 """
-                if check_account_number(command[1]) == 1:  # from_account_no exists
-                    if check_account_number(command[2]) == 1:  # to_account_no exists
+                if check_account_number(int(command[1])) == 1:  # from_account_no exists
+                    if check_account_number(int(command[2])) == 1:  # to_account_no exists
                         if int(get_user_integrity_label(int(command[1]), username)) <= \
                                 int(get_account_integrity_label(int(command[1]))) \
                                 and int(get_user_conf_label(int(command[1]), username)) >= \
@@ -126,7 +126,7 @@ def client_service(client):
                       "Untrusted"      : '4',
                     }
                 """
-                if check_account_number(command[1]) == 1:  # account_no exists
+                if check_account_number(int(command[1])) == 1:  # account_no exists
                     if int(get_user_integrity_label(int(command[1]), username)) <= \
                             int(get_account_integrity_label(int(command[1]))) \
                             and int(get_user_conf_label(int(command[1]), username)) >= \
@@ -324,7 +324,7 @@ def get_user_conf_label(account_no, username):
     }
     """
     cursor = connection.cursor()
-    args = [account_no, username, 0]
+    args = [username, account_no, 0]
     result_args = cursor.callproc('get_user_conf_label', args)
     cursor.close()
     return result_args[1]
@@ -343,7 +343,7 @@ def get_user_integrity_label(account_no, username):
         }
     """
     cursor = connection.cursor()
-    args = [account_no, username, 0]
+    args = [username, account_no, 0]
     result_args = cursor.callproc('get_user_integrity_label', args)
     cursor.close()
     return result_args[1]
