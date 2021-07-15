@@ -1,0 +1,5 @@
+mysql> CREATE DATABASE securebankingsystem
+
+
+mysql -h hostname -u [yourUserName] -p [yourPassword] securebankingsystem < BankDDL.sql
+mysql -h hostname -u [yourUserName] -p [yourPassword] securebankingsystem < BankDML.sql
