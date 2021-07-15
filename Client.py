@@ -89,10 +89,6 @@ def Withdraw(command, cmd, client, key):
     :param client: socket of current client to server
     :param key: session key
     :return: status code (1: successful, 0: failure)
-
-    :Access Control Strategy:
-        1. Integrity(User)       > Integrity(Account)
-        2. Confidentiality(User) < Confidentiality(Account)
     """
     if len(cmd[1]) != 10:
         print("ERROR: Invalid account number. [Length(10)]")
@@ -121,10 +117,10 @@ def Withdraw(command, cmd, client, key):
         print("ERROR: There is no account with the given account_no.")
         return 0  # Withdrawal was failed
     elif replay[0] == "E1":
-        print("ERROR: Your account balance is not enough.")
+        print("ERROR: Access denied. You are not permitted to withdraw from this account")
         return 0  # Withdrawal was failed
     elif replay[0] == "E2":
-        print("ERROR: Access denied. You are not permitted to withdraw from this account")
+        print("ERROR: Your account balance is not enough.")
         return 0  # Withdrawal was failed
 
 
@@ -135,10 +131,6 @@ def Deposit(command, cmd, client, key):
     :param client: socket of current client to server
     :param key: session key
     :return: status code (1: successful, 0: failure)
-
-    :Access Control Strategy for from_account_no:
-        1. Integrity(User)       > Integrity(Account)
-        2. Confidentiality(User) < Confidentiality(Account)
     """
     if len(cmd[1]) != 10:
         print("ERROR: Invalid origin account number. [Length(10)]")
@@ -176,10 +168,10 @@ def Deposit(command, cmd, client, key):
         print("ERROR: There is no account with the given to_account_no.")
         return 0  # Deposit was failed
     elif replay[0] == "E2":
-        print("ERROR: Your account balance is not enough.")
+        print("ERROR: Access denied. You are not permitted to withdraw from this account")
         return 0  # Deposit was failed
     elif replay[0] == "E3":
-        print("ERROR: Access denied. You are not permitted to withdraw from this account")
+        print("ERROR: Your account balance is not enough.")
         return 0  # Deposit was failed
 
 
