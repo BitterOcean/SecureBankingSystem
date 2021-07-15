@@ -169,7 +169,7 @@ if __name__ == '__main__':
                     break
 
                 else:
-                    print()
+                    print("Comment is wrong!!!")
 
             else:
                 if cmd[0] == "Signup" and len(cmd) == 3:
@@ -194,6 +194,6 @@ if __name__ == '__main__':
                     break
 
                 else:
-                    print()
+                    print("Comment is wrong!!!")
 
         client.close()

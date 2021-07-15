@@ -93,7 +93,7 @@ def client_service(client):
                     msg = "E0 " + str(datetime.now())
 
                 # Signup log
-                add_signup_log(command[1], command[2], status)
+                # add_signup_log(command[1], command[2], status)
 
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
@@ -123,7 +123,7 @@ def client_service(client):
                     #honeypot
 
                 # Login log
-                add_login_log(command[1], command[2], status, client.getpeername()[0], client.getpeername()[1])
+                # add_login_log(command[1], command[2], status, client.getpeername()[0], client.getpeername()[1])
 
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
@@ -134,6 +134,8 @@ def client_service(client):
                 client.send(msg.encode('utf-8'))
                 break
 
+    c_IP, c_port = client.getpeername()
+    print('Client with ip = {} and port = {} has been disconnected at time {}.'.format(c_IP, c_port, str(datetime.now())))
     client.close()
     count = count - 1
 
