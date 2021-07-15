@@ -70,7 +70,7 @@ BEGIN
 	INSERT INTO Account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
 	  VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
   INSERT INTO Account_User(username, account_no, conf_lable, integrity_lable)
-    VALUES (_username, _account_no, '1', '1');
+    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
 	COMMIT;
 END$$
 
@@ -219,7 +219,7 @@ GO
 DROP PROCEDURE IF EXISTS check_account_number;
 DELIMITER $$
 CREATE PROCEDURE check_account_number(
-	IN _account_no VARCHAR(10),
+	IN _account_no INT(10),
   OUT _status INT
 )
 BEGIN
@@ -449,7 +449,7 @@ CREATE PROCEDURE get_user_integrity_label(
   OUT _integrity_lable VARCHAR(1)
 )
 BEGIN
-    SELECT integrity_label
+    SELECT integrity_lable
     INTO _integrity_lable
     FROM Account_User
     WHERE account_no = _account_no
