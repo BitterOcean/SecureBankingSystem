@@ -103,7 +103,8 @@ def client_service(client):
                                 # MAC
                                 int(get_user_integrity_label(int(command[1]), username)) <=
                                 int(get_account_integrity_label(int(command[1])))
-                                and int(get_user_conf_label(int(command[1]), username)) >=
+                                and
+                                int(get_user_conf_label(int(command[1]), username)) >=
                                 int(get_account_conf_label(int(command[1])))
                         ):  # have write permission
                             if check_balance(int(command[1]), int(command[3])):  # enough balance
@@ -151,7 +152,8 @@ def client_service(client):
                             # MAC
                             int(get_user_integrity_label(int(command[1]), username)) <=
                             int(get_account_integrity_label(int(command[1])))
-                            and int(get_user_conf_label(int(command[1]), username)) >=
+                            and
+                            int(get_user_conf_label(int(command[1]), username)) >=
                             int(get_account_conf_label(int(command[1])))
                     ):  # have write permission
                         if check_balance(int(command[1]), int(command[2])):  # enough balance
