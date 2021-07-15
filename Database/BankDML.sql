@@ -617,6 +617,25 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS is_user_joint_account;
+DELIMITER $$
+CREATE PROCEDURE is_user_joint_account(
+  IN _username VARCHAR(50),
+  IN _account_no INT(10),
+  OUT _ret INT
+)
+BEGIN
+  SELECT EXISTS(
+    SELECT account_user_ID
+    FROM Account_User
+    WHERE account_no = _account_no
+      AND username = _username
+  ) INTO _ret;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS Show_MyAccount;
 DELIMITER $$
 CREATE PROCEDURE Show_MyAccount(IN _username VARCHAR(50))

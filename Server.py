@@ -101,6 +101,8 @@ def client_service(client):
                     if check_account_number(int(command[2])) == 1:  # to_account_no exists
                         if is_account_owner(username, command[1]) or (  # DAC
                                 # MAC
+                                int(is_user_joint_account(username, int(command[1])))
+                                and
                                 int(get_user_integrity_label(int(command[1]), username)) <=
                                 int(get_account_integrity_label(int(command[1])))
                                 and
@@ -150,6 +152,8 @@ def client_service(client):
                 if check_account_number(int(command[1])) == 1:  # account_no exists
                     if is_account_owner(username, command[1]) or (  # DAC
                             # MAC
+                            int(is_user_joint_account(username, int(command[1])))
+                            and
                             int(get_user_integrity_label(int(command[1]), username)) <=
                             int(get_account_integrity_label(int(command[1])))
                             and
@@ -501,6 +505,21 @@ def is_password_strong(username, password):
             return "Password is in top 1,000,000 weak passwords !!!"
 
     return '1'
+
+
+def is_user_joint_account(username, account_no):
+    """
+    :param account_no: account number INT(10)
+    :param username: username VARCHAR(50)
+    :return: status code 0: username is not
+             joint with this account_no
+             and 1 for otherwise
+    """
+    cursor = connection.cursor()
+    args = [username, account_no, 0]
+    result_args = cursor.callproc('is_user_joint_account', args)
+    cursor.close()
+    return result_args[2]
 
 
 def update_ban(username):
