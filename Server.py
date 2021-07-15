@@ -93,7 +93,7 @@ def client_service(client):
                     msg = "E0 " + str(datetime.now())
 
                 # Signup log
-                # add_signup_log(command[1], command[2], status)
+                add_signup_log(command[1], command[2], str(status))
 
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
@@ -123,7 +123,7 @@ def client_service(client):
                     #honeypot
 
                 # Login log
-                # add_login_log(command[1], command[2], status, client.getpeername()[0], client.getpeername()[1])
+                add_login_log(command[1], command[2], client.getpeername()[0], client.getpeername()[1], str(status))
 
                 msg = encrypt(msg, session_key)
                 client.send(msg.encode('utf-8'))
@@ -222,7 +222,7 @@ def update_ban(username):
     cursor.callproc('update_ban', args)
     cursor.close()
 
-def add_login_log(username, password, status, ip, port):
+def add_login_log(username, password, ip, port, status):
     cursor = connection.cursor()
     salt = ''.join(secrets.choice(string.ascii_letters) for _ in range(25))
     hash_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
@@ -231,9 +231,9 @@ def add_login_log(username, password, status, ip, port):
     args.append(username)
     args.append(hash_password)
     args.append(salt)
-    args.append(status)
     args.append(ip)
     args.append(port)
+    args.append(status)
     cursor.callproc('add_login_log', args)
     cursor.close()
 

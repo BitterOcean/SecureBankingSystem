@@ -229,7 +229,7 @@ CREATE PROCEDURE add_signup_log(
 BEGIN
 	START TRANSACTION;
 	INSERT INTO Signup_Request_Log (username, `password`, salt, `status`)
-	  VALUES (_username, _password, salt, _status);
+	  VALUES (_username, _password, _salt, _status);
 	COMMIT;
 END$$
 

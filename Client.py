@@ -2,6 +2,7 @@ import json
 import base64
 import socket
 from Crypto import Random
+from random import randint
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from cryptography.hazmat.backends import default_backend
@@ -29,6 +30,15 @@ def Signup(command, client, key):
         return 0  # Signup failed
 
 def Login(command, client, key):
+    while True:
+        range_start = 10 ** (4)
+        range_end = (10 ** 5) - 1
+        random_number = randint(range_start, range_end)
+        if int(input("Please enter this number ({}): ".format(random_number))) == random_number:
+            break
+        else:
+            print("ERROR: Wrong number. Please try again")
+
     command = encrypt(command, key)
     client.send(command.encode('utf-8'))
 
