@@ -287,7 +287,7 @@ def get_account_conf_label(account_no):
     }
     """
     cursor = connection.cursor()
-    args = [account_no, 0]
+    args = [account_no, '']
     result_args = cursor.callproc('get_account_conf_label', args)
     cursor.close()
     return result_args[1]
@@ -305,7 +305,7 @@ def get_account_integrity_label(account_no):
         }
     """
     cursor = connection.cursor()
-    args = [account_no, 0]
+    args = [account_no, '']
     result_args = cursor.callproc('get_account_integrity_label', args)
     cursor.close()
     return result_args[1]
@@ -324,10 +324,10 @@ def get_user_conf_label(account_no, username):
     }
     """
     cursor = connection.cursor()
-    args = [username, account_no, 0]
+    args = [username, account_no, '']
     result_args = cursor.callproc('get_user_conf_label', args)
     cursor.close()
-    return result_args[1]
+    return result_args[2]
 
 
 def get_user_integrity_label(account_no, username):
@@ -343,10 +343,10 @@ def get_user_integrity_label(account_no, username):
         }
     """
     cursor = connection.cursor()
-    args = [username, account_no, 0]
+    args = [username, account_no, '']
     result_args = cursor.callproc('get_user_integrity_label', args)
     cursor.close()
-    return result_args[1]
+    return result_args[2]
 
 
 def is_password_strong(username, password):
