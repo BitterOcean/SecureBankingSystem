@@ -1,3 +1,16 @@
+-- conf_label = {
+--   "TopSecret"    : '1',
+--   "Secret"       : '2',
+--   "Confidential" : '3',
+--   "Unclassified" : '4',
+-- }
+
+-- integrity_label = {
+--   "VeryTrusted"    : '1',
+--   "Trusted"        : '2',
+--   "SlightlyTrusted": '3',
+--   "Untrusted"      : '4',
+-- }
 USE securebankingsystem
 GO
 
@@ -77,7 +90,7 @@ CREATE TABLE Signup_Request_Log (
   signup_log_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
   `password` VARCHAR(200) NOT NULL,
-	`status` VARCHAR(1) CHECK(`status` IN ('1', '0') ),
+	`status` VARCHAR(1) CHECK(`status` IN ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -86,7 +99,7 @@ CREATE OR REPLACE TABLE Login_Request_Log (
   login_log_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
 	`password` VARCHAR(200) NOT NULL,
-	`status` VARCHAR(1) CHECK(`status` in ('1', '0') ),
+	`status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
 	ip VARCHAR(20) NOT NULL,
 	port VARCHAR(20) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
