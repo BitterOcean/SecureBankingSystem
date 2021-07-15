@@ -2,24 +2,134 @@ USE securebankingsystem
 GO
 
 
-DROP PROCEDURE IF EXISTS check_user;
+DROP PROCEDURE IF EXISTS accept_join_request;
 DELIMITER $$
-CREATE PROCEDURE check_user(
+CREATE PROCEDURE accept_join_request(
 	IN _username VARCHAR(50),
-  OUT _status INT
+  IN _account_no INT(10),
+  IN _conf_lable VARCHAR(1),
+  IN _integrity_lable VARCHAR(1)
 )
 BEGIN
-	DECLARE numOfUsers DECIMAL DEFAULT 0;
-  SELECT COUNT(*)
-  INTO numOfUsers
-  FROM User
-  WHERE username = _username;
+	START TRANSACTION;
+  UPDATE Join_Request
+  SET `status` = '1'
+  WHERE applicant_username = _username
+    AND desired_account_no = _account_no;
 
-  IF numOfUsers > 0 THEN
-      SET _status = 1;
-  ELSE
-      SET _status = 0;
-  END IF;
+	INSERT INTO Account_User (
+    username,
+    account_no,
+    conf_lable,
+    integrity_lable
+    ) VALUES (
+      _username,
+      _account_no,
+      _conf_lable,
+      _integrity_lable
+    );
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS account_info;
+DELIMITER $$
+CREATE PROCEDURE account_info(IN _account_no INT(10))
+BEGIN
+	SELECT `type`, created_at, amount, opener_ID
+    FROM Account
+	WHERE from_account_no = _account_no;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_account;
+DELIMITER $$
+CREATE PROCEDURE add_account(
+	IN _username VARCHAR(50),
+  IN _type VARCHAR(30),
+  IN _amount DECIMAL(19, 4),
+  IN _conf_lable VARCHAR(1),
+  IN _integrity_lable VARCHAR(1),
+  OUT _account_no VARCHAR(10)
+)
+BEGIN
+	DECLARE AC INT DEFAULT 1000000000;
+	WHILE (SELECT COUNT(*)
+         FROM Account
+         WHERE AC in (SELECT CAST(account_no AS INT) FROM Account)) DO
+		SET AC = AC + 1;
+  END WHILE;
+  SELECT CAST(AC AS CHAR(10))
+  INTO _account_no;
+
+	START TRANSACTION;
+	INSERT INTO Account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
+	  VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
+  INSERT INTO Account_User(username, account_no, conf_lable, integrity_lable)
+    VALUES (_username, _account_no, '1', '1');
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_account_user;
+DELIMITER $$
+CREATE PROCEDURE add_account_user(
+    IN _account_no INT(10),
+    IN _username VARCHAR(50),
+    IN _conf_lable VARCHAR(1),
+    IN _integrity_lable VARCHAR(1))
+BEGIN
+	INSERT INTO account_user(account_no, username, conf_lable, integrity_lable)
+	SELECT _account_no, _username, _conf_lable, _integrity_lable
+	FROM DUAL
+	WHERE NOT EXISTS(
+    	SELECT 1
+    	FROM Account_User
+    	WHERE account_no = _account_no AND username = _username
+	)
+	LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_login_log;
+DELIMITER $$
+CREATE PROCEDURE add_login_log(
+	IN _username VARCHAR(50),
+  IN _password VARCHAR(200),
+  IN _status VARCHAR(1),
+  IN _ip VARCHAR(20),
+  IN _port VARCHAR(6)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Login_Request_Log (username, `password`, `status`, ip, port)
+	  VALUES (_username, _password, _status, _ip, _port);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_signup_log;
+DELIMITER $$
+CREATE PROCEDURE add_signup_log(
+    IN _username VARCHAR(50),
+    IN _password VARCHAR(200),
+    IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Signup_Request_Log (username, `password`, `status`)
+	  VALUES (_username, _password, _status);
+	COMMIT;
 END$$
 
 DELIMITER ;
@@ -42,26 +152,68 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS get_password_salt;
+DROP TRIGGER IF EXISTS auto_account_updated_at;
 DELIMITER $$
-CREATE PROCEDURE get_password_salt(
-	IN _username VARCHAR(50),
-  OUT _password VARCHAR(200),
-  OUT _salt VARCHAR(100)
-)
-BEGIN
-    SELECT `password`
-    INTO _password
-    FROM User
-    WHERE username = _username;
-
-    SELECT salt
-    INTO _salt
-    FROM User
-    WHERE username = _username;
-END$$
-
+CREATE TRIGGER auto_account_updated_at
+BEFORE UPDATE
+ON Account
+FOR EACH ROW
+  SET NEW.updated_at = CURRENT_TIMESTAMP;
+$$
 DELIMITER ;
+GO
+
+
+DROP TRIGGER IF EXISTS auto_insert_ban_user;
+DELIMITER $$
+CREATE TRIGGER auto_insert_ban_user
+AFTER INSERT
+ON User
+FOR EACH ROW
+  INSERT INTO Ban_Users ( username, ban_times, started_at, finished_at )
+    VALUES(NEW.username, 0, NULL, NULL);
+$$
+DELIMITER ;
+GO
+
+DROP TRIGGER IF EXISTS auto_join_updated_at;
+DELIMITER $$
+CREATE TRIGGER auto_join_updated_at
+BEFORE UPDATE
+ON Join_Request
+FOR EACH ROW
+  SET NEW.updated_at = CURRENT_TIMESTAMP;
+$$
+DELIMITER ;
+GO
+
+
+DROP TRIGGER IF EXISTS auto_update_account_balance_after_transaction;
+DELIMITER $$
+CREATE TRIGGER auto_update_account_balance_after_transaction
+AFTER INSERT
+ON `Transaction`
+FOR EACH ROW
+BEGIN
+  -- update destination account balance
+  UPDATE Account
+  SET amount = CASE
+                  WHEN amount + NEW.amount >= 0 THEN amount + NEW.amount
+                  ELSE amount
+                END
+  WHERE account_no = NEW.to_account_no;
+  -- update origin account balance
+  IF NEW.to_account_no <> NEW.from_account_no THEN
+    UPDATE Account
+    SET amount = CASE
+                  WHEN amount - NEW.amount >= 0 THEN amount - NEW.amount
+                  ELSE amount
+                END
+    WHERE account_no = NEW.from_account_no;
+  END IF;
+END$$
+DELIMITER ;
+GO
 
 
 DROP PROCEDURE IF EXISTS check_account_number;
@@ -87,27 +239,26 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS update_ban;
+DROP PROCEDURE IF EXISTS check_balance;
 DELIMITER $$
-CREATE PROCEDURE update_ban(
-	IN _username VARCHAR(50)
+CREATE PROCEDURE check_balance (
+  IN _account_no INT(10),
+  IN _amount DECIMAL(11, 4),
+  OUT _ret INT
 )
 BEGIN
-	DECLARE _ban_times INT DEFAULT 0;
-	SELECT ban_times
-  INTO _ban_times
-  FROM Ban_Users
-  WHERE username = _username;
+  DECLARE balance DECIMAL(19, 4);
+  SELECT amount
+  INTO balance
+  FROM Account
+  WHERE account_no = _account_no;
 
-  START TRANSACTION;
-	UPDATE Ban_Users
-  SET ban_times = _ban_times + 1,
-      started_at = CURRENT_TIMESTAMP,
-      finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
-  WHERE username = _username;
-	COMMIT;
+  IF balance >= _amount THEN
+    SET _ret = 1;
+  ELSE
+    SET _ret = 0;
+  END IF;
 END$$
-
 DELIMITER ;
 
 
@@ -143,32 +294,24 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS add_account;
+DROP PROCEDURE IF EXISTS check_user;
 DELIMITER $$
-CREATE PROCEDURE add_account(
+CREATE PROCEDURE check_user(
 	IN _username VARCHAR(50),
-  IN _type VARCHAR(30),
-  IN _amount DECIMAL(15, 4),
-  IN _conf_lable VARCHAR(1),
-  IN _integrity_lable VARCHAR(1),
-  OUT _account_no VARCHAR(10)
+  OUT _status INT
 )
 BEGIN
-	DECLARE AC INT DEFAULT 1000000000;
-	WHILE (SELECT COUNT(*)
-         FROM Account
-         WHERE AC in (SELECT CAST(account_no AS INT) FROM Account)) DO
-		SET AC = AC + 1;
-  END WHILE;
-  SELECT CAST(AC AS CHAR(10))
-  INTO _account_no;
+	DECLARE numOfUsers DECIMAL DEFAULT 0;
+  SELECT COUNT(*)
+  INTO numOfUsers
+  FROM User
+  WHERE username = _username;
 
-	START TRANSACTION;
-	INSERT INTO Account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
-	  VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
-  INSERT INTO Account_User(username, account_no, conf_lable, integrity_lable)
-    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
-	COMMIT;
+  IF numOfUsers > 0 THEN
+      SET _status = 1;
+  ELSE
+      SET _status = 0;
+  END IF;
 END$$
 
 DELIMITER ;
@@ -190,38 +333,6 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS accept_join_request;
-DELIMITER $$
-CREATE PROCEDURE accept_join_request(
-	IN _username VARCHAR(50),
-  IN _account_no INT(10),
-  IN _conf_lable VARCHAR(1),
-  IN _integrity_lable VARCHAR(1)
-)
-BEGIN
-	START TRANSACTION;
-  UPDATE Join_Request
-  SET `status` = '1'
-  WHERE applicant_username = _username
-    AND desired_account_no = _account_no;
-
-	INSERT INTO Account_User (
-    username,
-    account_no,
-    conf_lable,
-    integrity_lable
-    ) VALUES (
-      _username,
-      _account_no,
-      _conf_lable,
-      _integrity_lable
-    );
-	COMMIT;
-END$$
-
-DELIMITER ;
-
-
 DROP PROCEDURE IF EXISTS deposit;
 DELIMITER $$
 -- Deposit ~ transfare from_account_no to_account_no
@@ -229,7 +340,7 @@ CREATE PROCEDURE deposit(
   IN _username VARCHAR(50),
 	IN _from_account_no INT(10),
   IN _to_account_no INT(10),
-  IN _amount DECIMAL(7, 4)
+  IN _amount DECIMAL(11, 4)
 )
 BEGIN
 	START TRANSACTION;
@@ -250,29 +361,121 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS withdraw;
+DROP PROCEDURE IF EXISTS five_Deposit;
 DELIMITER $$
--- Withdraw ~ withdraw from_account_no
--- to_account_no is additional (project bug!)
-CREATE PROCEDURE withdraw(
-  IN _username VARCHAR(50),
+CREATE PROCEDURE five_Deposit(IN _account_no INT(10))
+BEGIN
+	SELECT *
+    FROM `Transaction`
+	WHERE to_account_no = _account_no
+        AND from_account_no <> _account_no
+	ORDER BY TIMESTAMP DESC
+	LIMIT 5;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS five_withdraw;
+DELIMITER $$
+CREATE PROCEDURE five_withdraw(IN _account_no INT(10))
+BEGIN
+	SELECT *
+    FROM `Transaction`
+	WHERE from_account_no = _account_no
+        AND to_account_no = _account_no
+	ORDER BY TIMESTAMP DESC
+	LIMIT 5;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS get_account_conf_label;
+DELIMITER $$
+CREATE PROCEDURE get_account_conf_label(
 	IN _account_no INT(10),
-  IN _amount DECIMAL(7, 4)
+  OUT _conf_lable VARCHAR(1)
 )
 BEGIN
-	START TRANSACTION;
-	INSERT INTO `Transaction` (
-    username,
-    from_account_no,
-    to_account_no,
-    amount
-    ) VALUES (
-      _username,
-      _account_no,
-      _account_no,
-      (0 - _amount)
-    );
-	COMMIT;
+    SELECT conf_lable
+    INTO _conf_lable
+    FROM Account
+    WHERE account_no = _account_no;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS get_account_integrity_label;
+DELIMITER $$
+CREATE PROCEDURE get_account_integrity_label(
+	IN _account_no INT(10),
+  OUT _integrity_lable VARCHAR(1)
+)
+BEGIN
+    SELECT integrity_lable
+    INTO _integrity_lable
+    FROM Account
+    WHERE account_no = _account_no;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS get_user_conf_label;
+DELIMITER $$
+CREATE PROCEDURE get_user_conf_label(
+	IN _username VARCHAR(50),
+  IN _account_no INT(10),
+  OUT _conf_lable VARCHAR(1)
+)
+BEGIN
+    SELECT conf_lable
+    INTO _conf_lable
+    FROM Account_User
+    WHERE account_no = _account_no
+      AND username = _username;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS get_user_integrity_label;
+DELIMITER $$
+CREATE PROCEDURE get_user_integrity_label(
+	IN _username VARCHAR(50),
+  IN _account_no INT(10),
+  OUT _integrity_lable VARCHAR(1)
+)
+BEGIN
+    SELECT integrity_label
+    INTO _integrity_lable
+    FROM Account_User
+    WHERE account_no = _account_no
+      AND username = _username;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS get_password_salt;
+DELIMITER $$
+CREATE PROCEDURE get_password_salt(
+	IN _username VARCHAR(50),
+  OUT _password VARCHAR(200),
+  OUT _salt VARCHAR(100)
+)
+BEGIN
+    SELECT `password`
+    INTO _password
+    FROM User
+    WHERE username = _username;
+
+    SELECT salt
+    INTO _salt
+    FROM User
+    WHERE username = _username;
 END$$
 
 DELIMITER ;
@@ -298,100 +501,24 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS add_account_user;
+DROP PROCEDURE IF EXISTS update_ban;
 DELIMITER $$
-CREATE PROCEDURE add_account_user(
-    IN _account_no INT(10),
-    IN _username VARCHAR(50), 
-    IN _conf_lable VARCHAR(1), 
-    IN _integrity_lable VARCHAR(1))
-BEGIN
-	INSERT INTO account_user(account_no, username, conf_lable, integrity_lable)
-	SELECT _account_no, _username, _conf_lable, _integrity_lable
-	FROM DUAL
-	WHERE NOT EXISTS(
-    	SELECT 1
-    	FROM Account_User
-    	WHERE account_no = _account_no AND username = _username
-	)
-	LIMIT 1;
-END$$
-
-DELIMITER ;
-
-
-DROP PROCEDURE IF EXISTS five_withdraw;
-DELIMITER $$
-CREATE PROCEDURE five_withdraw(IN _account_no INT(10))
-BEGIN
-	SELECT * 
-    FROM `Transaction`
-	WHERE from_account_no = _account_no
-        AND to_account_no = _account_no
-	ORDER BY TIMESTAMP DESC
-	LIMIT 5;
-END$$
-
-DELIMITER ;
-
-
-DROP PROCEDURE IF EXISTS five_Deposit;
-DELIMITER $$
-CREATE PROCEDURE five_Deposit(IN _account_no INT(10))
-BEGIN
-	SELECT * 
-    FROM `Transaction`
-	WHERE to_account_no = _account_no
-        AND from_account_no <> _account_no
-	ORDER BY TIMESTAMP DESC
-	LIMIT 5;
-END$$
-
-DELIMITER ;
-
-
-DROP PROCEDURE IF EXISTS account_info;
-DELIMITER $$
-CREATE PROCEDURE account_info(IN _account_no INT(10))
-BEGIN
-	SELECT `type`, created_at, amount, opener_ID 
-    FROM Account
-	WHERE from_account_no = _account_no;
-END$$
-
-DELIMITER ;
-
-
-DROP PROCEDURE IF EXISTS add_signup_log;
-DELIMITER $$
-CREATE PROCEDURE add_signup_log(
-    IN _username VARCHAR(50),
-    IN _password VARCHAR(200),
-    IN _status VARCHAR(1)
+CREATE PROCEDURE update_ban(
+	IN _username VARCHAR(50)
 )
 BEGIN
-	START TRANSACTION;
-	INSERT INTO Signup_Request_Log (username, `password`, `status`)
-	  VALUES (_username, _password, _status);
-	COMMIT;
-END$$
+	DECLARE _ban_times INT DEFAULT 0;
+	SELECT ban_times
+  INTO _ban_times
+  FROM Ban_Users
+  WHERE username = _username;
 
-DELIMITER ;
-
-
-DROP PROCEDURE IF EXISTS add_login_log;
-DELIMITER $$
-CREATE PROCEDURE add_login_log(
-	IN _username VARCHAR(50),
-  IN _password VARCHAR(200),
-  IN _status VARCHAR(1),
-  IN _ip VARCHAR(20),
-  IN _port VARCHAR(6)
-)
-BEGIN
-	START TRANSACTION;
-	INSERT INTO Login_Request_Log (username, `password`, `status`, ip, port)
-	  VALUES (_username, _password, _status, _ip, _port);
+  START TRANSACTION;
+	UPDATE Ban_Users
+  SET ban_times = _ban_times + 1,
+      started_at = CURRENT_TIMESTAMP,
+      finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
+  WHERE username = _username;
 	COMMIT;
 END$$
 
@@ -417,66 +544,29 @@ END$$
 DELIMITER ;
 
 
-DROP TRIGGER IF EXISTS auto_account_updated_at;
+DROP PROCEDURE IF EXISTS withdraw;
 DELIMITER $$
-CREATE TRIGGER auto_account_updated_at
-BEFORE UPDATE
-ON Account
-FOR EACH ROW
-  SET NEW.updated_at = CURRENT_TIMESTAMP;
-$$
-DELIMITER ;
-GO
-
-
-DROP TRIGGER IF EXISTS auto_join_updated_at;
-DELIMITER $$
-CREATE TRIGGER auto_join_updated_at
-BEFORE UPDATE
-ON Join_Request
-FOR EACH ROW
-  SET NEW.updated_at = CURRENT_TIMESTAMP;
-$$
-DELIMITER ;
-GO
-
-
-DROP TRIGGER IF EXISTS auto_insert_ban_user;
-DELIMITER $$
-CREATE TRIGGER auto_insert_ban_user
-AFTER INSERT
-ON User
-FOR EACH ROW
-  INSERT INTO Ban_Users ( username, ban_times, started_at, finished_at )
-    VALUES(NEW.username, 0, NULL, NULL);
-$$
-DELIMITER ;
-GO
-
-
-DROP TRIGGER IF EXISTS auto_update_account_balance_after_transaction;
-DELIMITER $$
-CREATE TRIGGER auto_update_account_balance_after_transaction
-AFTER INSERT
-ON `Transaction`
-FOR EACH ROW
+-- Withdraw ~ withdraw from_account_no
+-- to_account_no is additional (project bug!)
+CREATE PROCEDURE withdraw(
+  IN _username VARCHAR(50),
+	IN _account_no INT(10),
+  IN _amount DECIMAL(11, 4)
+)
 BEGIN
-  -- update destination account balance
-  UPDATE Account
-  SET amount = CASE
-                  WHEN amount + NEW.amount >= 0 THEN amount + NEW.amount
-                  ELSE amount
-                END
-  WHERE account_no = NEW.to_account_no;
-  -- update origin account balance
-  IF NEW.to_account_no <> NEW.from_account_no THEN
-    UPDATE Account
-    SET amount = CASE
-                  WHEN amount - NEW.amount >= 0 THEN amount - NEW.amount
-                  ELSE amount
-                END
-    WHERE account_no = NEW.from_account_no;
-  END IF;
+	START TRANSACTION;
+	INSERT INTO `Transaction` (
+    username,
+    from_account_no,
+    to_account_no,
+    amount
+    ) VALUES (
+      _username,
+      _account_no,
+      _account_no,
+      (0 - _amount)
+    );
+	COMMIT;
 END$$
+
 DELIMITER ;
-GO
