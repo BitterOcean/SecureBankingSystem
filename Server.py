@@ -65,10 +65,84 @@ def client_service(client):
                 print()
 
             elif command[0] == "Deposit" and len(command) == 4:
-                pass
+                """
+                :command: Deposit [from_account_no] [to_account_no] [amount]
+                :Access Control Strategy to withdraw from_account_no:
+                    1. Integrity(User)       >= Integrity(Account)
+                    2. Confidentiality(User) <= Confidentiality(Account)
+                :Access Control Strategy to deposit to_account_no: everyone has access
+                :In Database:    
+                    conf_label = {
+                      "TopSecret"    : '1',
+                      "Secret"       : '2',
+                      "Confidential" : '3',
+                      "Unclassified" : '4',
+                    }
+                    integrity_label = {
+                      "VeryTrusted"    : '1',
+                      "Trusted"        : '2',
+                      "SlightlyTrusted": '3',
+                      "Untrusted"      : '4',
+                    }
+                """
+                if check_account_number(command[1]) == 1:  # from_account_no exists
+                    if check_account_number(command[2]) == 1:  # to_account_no exists
+                        if int(get_user_integrity_label(int(command[1]), username)) <= \
+                                int(get_account_integrity_label(int(command[1]))) \
+                                and int(get_user_conf_label(int(command[1]), username)) >= \
+                                int(get_account_conf_label(int(command[1]))):  # have write permission
+                            if check_balance(int(command[1]), int(command[3])):  # enough balance
+                                deposit(username, int(command[1]), int(command[2]), int(command[3]))
+                                msg = "ok " + str(datetime.now())
+                            else:
+                                msg = "E3 " + str(datetime.now())  # NOT enough balance
+                        else:
+                            msg = "E2 " + str(datetime.now())  # Access denied
+                    else:
+                        msg = "E1 " + str(datetime.now())  # to_account_no exists
+                else:
+                    msg = "E0 " + str(datetime.now())  # from_account_no NOT exists
+
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
 
             elif command[0] == "Withdraw" and len(command) == 3:
-                pass
+                """
+                :command: Withdraw [account_no] [amount]
+                :Access Control Strategy to withdraw from account_no:
+                    1. Integrity(User)       >= Integrity(Account)
+                    2. Confidentiality(User) <= Confidentiality(Account)
+                :In Database:    
+                    conf_label = {
+                      "TopSecret"    : '1',
+                      "Secret"       : '2',
+                      "Confidential" : '3',
+                      "Unclassified" : '4',
+                    }
+                    integrity_label = {
+                      "VeryTrusted"    : '1',
+                      "Trusted"        : '2',
+                      "SlightlyTrusted": '3',
+                      "Untrusted"      : '4',
+                    }
+                """
+                if check_account_number(command[1]) == 1:  # account_no exists
+                    if int(get_user_integrity_label(int(command[1]), username)) <= \
+                            int(get_account_integrity_label(int(command[1]))) \
+                            and int(get_user_conf_label(int(command[1]), username)) >= \
+                            int(get_account_conf_label(int(command[1]))):  # have write permission
+                        if check_balance(int(command[1]), int(command[2])):  # enough balance
+                            withdraw(username, int(command[1]), int(command[2]))
+                            msg = "ok " + str(datetime.now())
+                        else:
+                            msg = "E2 " + str(datetime.now())  # NOT enough balance
+                    else:
+                        msg = "E1 " + str(datetime.now())  # Access denied
+                else:
+                    msg = "E0 " + str(datetime.now())  # account_no NOT exists
+
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
 
             elif command[0] == "Exit" and len(command) == 1:
                 break
@@ -113,10 +187,164 @@ def client_service(client):
     count = count - 1
 
 
+def add_user(username, password):
+    cursor = connection.cursor()
+    salt = ''.join(secrets.choice(string.ascii_letters) for _ in range(25))
+    hash_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    hash_password = str(hash_password)
+    args = [username, hash_password, salt]
+    cursor.callproc('add_user', args)
+    cursor.close()
+
+
+def check_account_number(account_no):
+    cursor = connection.cursor()
+    args = [account_no, 0]
+    result_args = cursor.callproc('check_account_number', args)
+    cursor.close()
+    return result_args[1]
+
+
+def check_balance(account_no, amount):
+    """
+    :param account_no: account number INT(10)
+    :param amount: DECIMAL(11, 4)
+    :return: status code (1:  enough balance, 0: NOT enough balance)
+    """
+    cursor = connection.cursor()
+    args = [account_no, amount, 0]
+    result_args = cursor.callproc('check_balance', args)
+    cursor.close()
+    return result_args[1]
+
+
+def check_password(username, password):
+    cursor = connection.cursor()
+    args = [username, 0, 0]
+    result_args = cursor.callproc('get_password_salt', args)
+    salt = str(result_args[2])
+    hash_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    hash_password = str(hash_password)
+    if hash_password == str(result_args[1]):
+        cursor.close()
+        return 1
+    cursor.close()
+    return 0
+
+
 def check_username(username):
     cursor = connection.cursor()
     args = [username, 0]
     result_args = cursor.callproc('check_user', args)
+    cursor.close()
+    return result_args[1]
+
+
+def decrypt(ciphertext, key):
+    b64 = json.loads(ciphertext)
+    nonce = base64.b64decode(b64['nonce'].encode('utf-8'))
+    plaintext = base64.b64decode(b64['ciphertext'])
+    countf = Counter.new(64, nonce)
+    cipher = AES.new(key, AES.MODE_CTR, counter=countf)
+    plaintext = cipher.decrypt(plaintext)
+    result = plaintext.decode('utf-8')
+    return result
+
+
+def deposit(username, from_account_no, to_account_no, amount):
+    """
+    :param username: username of Depositor VARCHAR(50)
+    :param from_account_no: origin account number INT(10)
+    :param to_account_no: destination account number INT(10)
+    :param amount: DECIMAL(11, 4)
+    """
+    cursor = connection.cursor()
+    args = [username, from_account_no, to_account_no, amount]
+    cursor.callproc('deposit', args)
+    cursor.close()
+
+
+def encrypt(plaintext, key):
+    nonce1 = Random.get_random_bytes(8)
+    countf = Counter.new(64, nonce1)
+    cipher = AES.new(key, AES.MODE_CTR, counter=countf)
+    ciphertext_bytes = cipher.encrypt(plaintext.encode('utf-8'))
+    nonce = base64.b64encode(nonce1).decode('utf-8')
+    ciphertext = base64.b64encode(ciphertext_bytes).decode('utf-8')
+    result = json.dumps({'nonce': nonce, 'ciphertext': ciphertext})
+    return result
+
+
+def get_account_conf_label(account_no):
+    """
+    :param account_no: account number INT(10)
+    :return: confirmation label VARCHAR(1) CHECK('1', '2', '3', '4')
+    :conf_labels: {
+      "TopSecret"    : '1',
+      "Secret"       : '2',
+      "Confidential" : '3',
+      "Unclassified" : '4',
+    }
+    """
+    cursor = connection.cursor()
+    args = [account_no, 0]
+    result_args = cursor.callproc('get_account_conf_label', args)
+    cursor.close()
+    return result_args[1]
+
+
+def get_account_integrity_label(account_no):
+    """
+    :param account_no: account number INT(10)
+    :return: Integrity label VARCHAR(1) CHECK('1', '2', '3', '4')
+    :integrity_labels: {
+          "VeryTrusted"    : '1',
+          "Trusted"        : '2',
+          "SlightlyTrusted": '3',
+          "Untrusted"      : '4',
+        }
+    """
+    cursor = connection.cursor()
+    args = [account_no, 0]
+    result_args = cursor.callproc('get_account_integrity_label', args)
+    cursor.close()
+    return result_args[1]
+
+
+def get_user_conf_label(account_no, username):
+    """
+    :param account_no: account number INT(10)
+    :param username: username VARCHAR(50)
+    :return: confirmation label VARCHAR(1) CHECK('1', '2', '3', '4')
+    :conf_labels: {
+      "TopSecret"    : '1',
+      "Secret"       : '2',
+      "Confidential" : '3',
+      "Unclassified" : '4',
+    }
+    """
+    cursor = connection.cursor()
+    args = [account_no, username, 0]
+    result_args = cursor.callproc('get_user_conf_label', args)
+    cursor.close()
+    return result_args[1]
+
+
+def get_user_integrity_label(account_no, username):
+    """
+    :param account_no: account number INT(10)
+    :param username: username VARCHAR(50)
+    :return: Integrity label VARCHAR(1) CHECK('1', '2', '3', '4')
+    :integrity_labels: {
+          "VeryTrusted"    : '1',
+          "Trusted"        : '2',
+          "SlightlyTrusted": '3',
+          "Untrusted"      : '4',
+        }
+    """
+    cursor = connection.cursor()
+    args = [account_no, username, 0]
+    result_args = cursor.callproc('get_user_integrity_label', args)
     cursor.close()
     return result_args[1]
 
@@ -138,30 +366,6 @@ def is_password_strong(username, password):
     return '1'
 
 
-def add_user(username, password):
-    cursor = connection.cursor()
-    salt = ''.join(secrets.choice(string.ascii_letters) for _ in range(25))
-    hash_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
-    hash_password = str(hash_password)
-    args = [username, hash_password, salt]
-    cursor.callproc('add_user', args)
-    cursor.close()
-
-
-def check_password(username, password):
-    cursor = connection.cursor()
-    args = [username, 0, 0]
-    result_args = cursor.callproc('get_password_salt', args)
-    salt = str(result_args[2])
-    hash_password = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
-    hash_password = str(hash_password)
-    if hash_password == str(result_args[1]):
-        cursor.close()
-        return 1
-    cursor.close()
-    return 0
-
-
 def key_exchange(client):
     backend = default_backend()
     client_recv = client.recv(1024)
@@ -176,26 +380,16 @@ def key_exchange(client):
     return session_key
 
 
-def encrypt(plaintext, key):
-    nonce1 = Random.get_random_bytes(8)
-    countf = Counter.new(64, nonce1)
-    cipher = AES.new(key, AES.MODE_CTR, counter=countf)
-    ciphertext_bytes = cipher.encrypt(plaintext.encode('utf-8'))
-    nonce = base64.b64encode(nonce1).decode('utf-8')
-    ciphertext = base64.b64encode(ciphertext_bytes).decode('utf-8')
-    result = json.dumps({'nonce': nonce, 'ciphertext': ciphertext})
-    return result
-
-
-def decrypt(ciphertext, key):
-    b64 = json.loads(ciphertext)
-    nonce = base64.b64decode(b64['nonce'].encode('utf-8'))
-    plaintext = base64.b64decode(b64['ciphertext'])
-    countf = Counter.new(64, nonce)
-    cipher = AES.new(key, AES.MODE_CTR, counter=countf)
-    plaintext = cipher.decrypt(plaintext)
-    result = plaintext.decode('utf-8')
-    return result
+def withdraw(username, account_no, amount):
+    """
+    :param username: VARCHAR(50)
+    :param account_no: account number INT(10)
+    :param amount: DECIMAL(11, 4)
+    """
+    cursor = connection.cursor()
+    args = [username, account_no, amount]
+    cursor.callproc('withdraw', args)
+    cursor.close()
 
 
 if __name__ == '__main__':
