@@ -102,7 +102,7 @@ CREATE TABLE Signup_Request_Log (
   username VARCHAR(100) NULL,
   `password` VARCHAR(300) NULL,
   salt VARCHAR(100) NULL,
-	`status` VARCHAR(1) CHECK(`status` IN ('1', '0') ), -- 0: failure, 1: successful
+	`status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -112,24 +112,10 @@ CREATE TABLE Login_Request_Log (
   username VARCHAR(100) NULL,
 	`password` VARCHAR(300) NULL,
   salt VARCHAR(100) NULL,
-	`status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
 	ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
+	`status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-
-CREATE TABLE Create_Request_Log(
-  created_log_ID INT AUTO_INCREMENT PRIMARY KEY,
-  opener_ID VARCHAR(50) NULL,
-  `type` VARCHAR(30) NULL,
-  amount DECIMAL(19, 4) NULL,
-	conf_lable VARCHAR(1) NULL,
-	integrity_lable VARCHAR(1) NULL,
-  ip VARCHAR(20) NULL,
-	port VARCHAR(20) NULL,
-  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
-	created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -139,6 +125,7 @@ CREATE TABLE Join_Request_Log (
   desired_account_no INT(50) NULL,
   ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -150,6 +137,7 @@ CREATE TABLE Accept_Request_Log (
 	integrity_lable VARCHAR(1) NULL,
   ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -159,6 +147,7 @@ CREATE TABLE ShowMyAccount_Request_Log (
   username VARCHAR(50) NULL,
   ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -169,6 +158,7 @@ CREATE TABLE ShowAccount_Request_Log (
   account_no INT(50) NULL,
   ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -181,6 +171,7 @@ CREATE TABLE Deposit_Request_Log (
   amount DECIMAL(11, 4) NULL,
   ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -192,6 +183,7 @@ CREATE TABLE Withdraw_Request_Log (
   amount DECIMAL(11, 4) NULL,
   ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -46,6 +46,26 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS add_accept_log;
+DELIMITER $$
+CREATE PROCEDURE add_accept_log(
+	IN _applicant_username VARCHAR(50),
+  IN _conf_lable VARCHAR(1),
+  IN _integrity_lable VARCHAR(1),
+  IN _ip VARCHAR(20),
+	IN _port VARCHAR(20),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Accept_Request_Log (applicant_username, conf_lable, integrity_lable, ip, port, `status`)
+	  VALUES (_applicant_username, _conf_lable, _integrity_lable, _ip, _port, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS add_account;
 DELIMITER $$
 CREATE PROCEDURE add_account(
@@ -97,22 +117,40 @@ END$$
 DELIMITER ;
 
 
-DROP PROCEDURE IF EXISTS add_create_log;
+DROP PROCEDURE IF EXISTS add_deposit_log;
 DELIMITER $$
-CREATE PROCEDURE add_create_log(
-	IN _opener_ID VARCHAR(50),
-  IN _type VARCHAR(30),
-  IN _amount DECIMAL(19, 4),
-	IN _conf_lable VARCHAR(1),
-	IN _integrity_lable VARCHAR(1),
+CREATE PROCEDURE add_deposit_log (
+  IN _username VARCHAR(50),
+  IN _from_account_no INT(20),
+  IN _to_account_no INT(20),
+  IN _amount DECIMAL(11, 4),
   IN _ip VARCHAR(20),
 	IN _port VARCHAR(20),
   IN _status VARCHAR(1)
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO Create_Request_Log (opener_ID, `type`, amount, conf_lable, integrity_lable, ip, port, `status`)
-	  VALUES (_opener_ID, _type, _amount, _conf_lable, _integrity_lable, _ip, _port, _status);
+	INSERT INTO Deposit_Request_Log (username, from_account_no, to_account_no, amount, ip, port, `status`)
+	  VALUES (_username, _from_account_no, _to_account_no, _amount, _ip, _port, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_join_log;
+DELIMITER $$
+CREATE PROCEDURE add_join_log(
+	IN _applicant_username VARCHAR(50),
+  IN _desired_account_no INT(50),
+  IN _ip VARCHAR(20),
+	IN _port VARCHAR(20),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Join_Request_Log (applicant_username, desired_account_no, ip, port, `status`)
+	  VALUES (_applicant_username, _desired_account_no, _ip, _port, _status);
 	COMMIT;
 END$$
 
@@ -125,14 +163,51 @@ CREATE PROCEDURE add_login_log(
 	IN _username VARCHAR(50),
   IN _password VARCHAR(200),
   IN _salt VARCHAR(100),
-  IN _status VARCHAR(1),
   IN _ip VARCHAR(20),
-  IN _port VARCHAR(6)
+  IN _port VARCHAR(6),
+  IN _status VARCHAR(1)
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO Login_Request_Log (username, `password`, salt, `status`, ip, port)
-	  VALUES (_username, _password, _salt, _status, _ip, _port);
+	INSERT INTO Login_Request_Log (username, `password`, salt, ip, port, `status`)
+	  VALUES (_username, _password, _salt, _ip, _port, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_show_account_log;
+DELIMITER $$
+CREATE PROCEDURE add_show_account_log(
+	IN _username VARCHAR(50),
+  IN _account_no INT(50),
+  IN _ip VARCHAR(20),
+  IN _port VARCHAR(6),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO ShowAccount_Request_Log (username, account_no, ip, port, `status`)
+	  VALUES (_username, _account_no, _ip, _port, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_show_my_account_log;
+DELIMITER $$
+CREATE PROCEDURE add_show_my_account_log(
+	IN _username VARCHAR(50),
+  IN _ip VARCHAR(20),
+  IN _port VARCHAR(6),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO ShowMyAccount_Request_Log (username, ip, port, `status`)
+	  VALUES (_username, _ip, _port, _status);
 	COMMIT;
 END$$
 
@@ -168,6 +243,26 @@ BEGIN
 	START TRANSACTION;
 	INSERT INTO User (username, `password`, salt)
 	  VALUES (_username, _password, _salt);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_withdraw_log;
+DELIMITER $$
+CREATE PROCEDURE add_withdraw_log (
+  IN _username VARCHAR(50),
+  IN _account_no INT(20),
+  IN _amount DECIMAL(11, 4),
+  IN _ip VARCHAR(20),
+	IN _port VARCHAR(20),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO Withdraw_Request_Log (username, account_no, amount, ip, port, `status`)
+	  VALUES (_username, _account_no, _amount, _ip, _port, _status);
 	COMMIT;
 END$$
 
