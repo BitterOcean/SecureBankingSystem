@@ -87,10 +87,13 @@ def client_service(client):
                 """
                 if check_account_number(int(command[1])) == 1:  # from_account_no exists
                     if check_account_number(int(command[2])) == 1:  # to_account_no exists
-                        if int(get_user_integrity_label(int(command[1]), username)) <= \
-                                int(get_account_integrity_label(int(command[1]))) \
-                                and int(get_user_conf_label(int(command[1]), username)) >= \
-                                int(get_account_conf_label(int(command[1]))):  # have write permission
+                        if is_account_owner(username, command[1]) or (  # DAC
+                                # MAC
+                                int(get_user_integrity_label(int(command[1]), username)) <=
+                                int(get_account_integrity_label(int(command[1])))
+                                and int(get_user_conf_label(int(command[1]), username)) >=
+                                int(get_account_conf_label(int(command[1])))
+                        ):  # have write permission
                             if check_balance(int(command[1]), int(command[3])):  # enough balance
                                 deposit(username, int(command[1]), int(command[2]), int(command[3]))
                                 msg = "ok " + str(datetime.now())
@@ -127,10 +130,13 @@ def client_service(client):
                     }
                 """
                 if check_account_number(int(command[1])) == 1:  # account_no exists
-                    if int(get_user_integrity_label(int(command[1]), username)) <= \
-                            int(get_account_integrity_label(int(command[1]))) \
-                            and int(get_user_conf_label(int(command[1]), username)) >= \
-                            int(get_account_conf_label(int(command[1]))):  # have write permission
+                    if is_account_owner(username, command[1]) or (  # DAC
+                            # MAC
+                            int(get_user_integrity_label(int(command[1]), username)) <=
+                            int(get_account_integrity_label(int(command[1])))
+                            and int(get_user_conf_label(int(command[1]), username)) >=
+                            int(get_account_conf_label(int(command[1])))
+                    ):  # have write permission
                         if check_balance(int(command[1]), int(command[2])):  # enough balance
                             withdraw(username, int(command[1]), int(command[2]))
                             msg = "ok " + str(datetime.now())
@@ -345,6 +351,21 @@ def get_user_integrity_label(account_no, username):
     cursor = connection.cursor()
     args = [username, account_no, '']
     result_args = cursor.callproc('get_user_integrity_label', args)
+    cursor.close()
+    return result_args[2]
+
+
+def is_account_owner(username, account_no):
+    """
+    :param account_no: account number INT(10)
+    :param username: username VARCHAR(50)
+    :return: status code 0: username is not
+             the owner of this account_no
+             and 1 for otherwise
+    """
+    cursor = connection.cursor()
+    args = [username, account_no, 0]
+    result_args = cursor.callproc('is_account_owner', args)
     cursor.close()
     return result_args[2]
 

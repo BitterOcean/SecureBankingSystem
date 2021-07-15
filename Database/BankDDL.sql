@@ -14,8 +14,21 @@
 USE securebankingsystem
 GO
 
-
+SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS User;
+DROP TABLE IF EXISTS Account;
+DROP TABLE IF EXISTS Account_User;
+DROP TABLE IF EXISTS `Transaction`;
+DROP TABLE IF EXISTS Join_Request;
+DROP TABLE IF EXISTS Signup_Request_Log;
+DROP TABLE IF EXISTS Login_Request_Log;
+DROP TABLE IF EXISTS Create_Request_Log;
+DROP TABLE IF EXISTS Join_Request_Log;
+DROP TABLE IF EXISTS Accept_Request_Log;
+DROP TABLE IF EXISTS ShowMyAccount_Request_Log;
+DROP TABLE IF EXISTS Ban_Users;
+SET FOREIGN_KEY_CHECKS = 1;
+
 CREATE TABLE User (
   username VARCHAR(50) PRIMARY KEY,
   `password` VARCHAR(200) NOT NULL,
@@ -24,7 +37,6 @@ CREATE TABLE User (
 );
 
 
-DROP TABLE IF EXISTS Account;
 CREATE TABLE Account (
   account_no INT(10) AUTO_INCREMENT PRIMARY KEY,
   opener_ID VARCHAR(50) NOT NULL,
@@ -45,7 +57,6 @@ CREATE TABLE Account (
 ALTER TABLE Account AUTO_INCREMENT = 1000000000;
 
 
-DROP TABLE IF EXISTS Account_User;
 CREATE TABLE Account_User (
   account_user_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
@@ -58,7 +69,6 @@ CREATE TABLE Account_User (
 );
 
 
-DROP TABLE IF EXISTS `Transaction`;
 CREATE TABLE `Transaction` (
   transaction_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL,
@@ -72,7 +82,6 @@ CREATE TABLE `Transaction` (
 );
 
 
-DROP TABLE IF EXISTS Join_Request;
 CREATE TABLE Join_Request (
   join_ID INT AUTO_INCREMENT PRIMARY KEY,
   applicant_username VARCHAR(50) NOT NULL,
@@ -85,28 +94,63 @@ CREATE TABLE Join_Request (
 );
 
 
-DROP TABLE IF EXISTS Signup_Request_Log;
 CREATE TABLE Signup_Request_Log (
   signup_log_ID INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(50) NOT NULL,
-  `password` VARCHAR(200) NOT NULL,
+  username VARCHAR(100) NULL,
+  `password` VARCHAR(300) NULL,
 	`status` VARCHAR(1) CHECK(`status` IN ('1', '0') ), -- 0: failure, 1: successful
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 
-CREATE OR REPLACE TABLE Login_Request_Log (
+CREATE TABLE Login_Request_Log (
   login_log_ID INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(50) NOT NULL,
-	`password` VARCHAR(200) NOT NULL,
+  username VARCHAR(100) NULL,
+	`password` VARCHAR(300) NULL,
 	`status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
-	ip VARCHAR(20) NOT NULL,
-	port VARCHAR(20) NOT NULL,
+	ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 
-DROP TABLE IF EXISTS Ban_Users;
+CREATE TABLE Create_Request_Log(
+  created_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  account_no INT(10) NULL,
+  opener_ID VARCHAR(50) NULL,
+  `type` VARCHAR(30) NULL,
+  amount DECIMAL(19, 4) NULL,
+	conf_lable VARCHAR(1) NULL,
+	integrity_lable VARCHAR(1) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
+	created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE Join_Request_Log (
+  join_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  applicant_username VARCHAR(50) NULL,
+  desired_account_no INT(50) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE Accept_Request_Log (
+  accept_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  applicant_username VARCHAR(50) NULL,
+  conf_lable VARCHAR(1) NULL,
+	integrity_lable VARCHAR(1) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE ShowMyAccount_Request_Log (
+  showMyAccount_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE Ban_Users(
 	username VARCHAR(50) NOT NULL,
 	ban_times INT NOT NULL DEFAULT 0,

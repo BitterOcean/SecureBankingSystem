@@ -69,8 +69,6 @@ BEGIN
 	START TRANSACTION;
 	INSERT INTO Account (account_no, opener_ID, `type`, amount, conf_lable, integrity_lable)
 	  VALUES (_account_no, _username, _type, _amount, _conf_lable, _integrity_lable);
-  INSERT INTO Account_User(username, account_no, conf_lable, integrity_lable)
-    VALUES (_username, _account_no, _conf_lable, _integrity_lable);
 	COMMIT;
 END$$
 
@@ -476,6 +474,25 @@ BEGIN
     INTO _salt
     FROM User
     WHERE username = _username;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS is_account_owner;
+DELIMITER $$
+CREATE PROCEDURE is_account_owner(
+  IN _username VARCHAR(50),
+  IN _account_no INT(10),
+  OUT _ret INT
+)
+BEGIN
+  SELECT EXISTS(
+    SELECT account_no
+    FROM Account
+    WHERE account_no = _account_no
+      AND opener_ID = _username
+  ) INTO _ret;
 END$$
 
 DELIMITER ;

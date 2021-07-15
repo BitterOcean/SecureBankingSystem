@@ -229,7 +229,6 @@ if __name__ == '__main__':
 
     else:
         session_key = key_exchange(client)
-
         help_message1 = (
                 'Available commands:\n' +
                 '\tSignup   \tSignup [username] [password]\n' +
@@ -251,6 +250,7 @@ if __name__ == '__main__':
                 '\tHelp\n' +
                 '\tExit\n'
         )
+
         print(help_message1)
 
         while True:
