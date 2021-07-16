@@ -39,8 +39,8 @@ DELIMITER $$
 CREATE PROCEDURE account_info(IN _account_no INT(10))
 BEGIN
 	SELECT `type`, created_at, amount, opener_ID
-    FROM Account
-	WHERE from_account_no = _account_no;
+  FROM Account
+	WHERE account_no = _account_no;
 END$$
 
 DELIMITER ;
@@ -50,6 +50,7 @@ DROP PROCEDURE IF EXISTS add_accept_log;
 DELIMITER $$
 CREATE PROCEDURE add_accept_log(
 	IN _applicant_username VARCHAR(50),
+	IN _sender_username VARCHAR(50),
   IN _conf_lable VARCHAR(1),
   IN _integrity_lable VARCHAR(1),
   IN _ip VARCHAR(20),
@@ -58,8 +59,8 @@ CREATE PROCEDURE add_accept_log(
 )
 BEGIN
 	START TRANSACTION;
-	INSERT INTO Accept_Request_Log (applicant_username, conf_lable, integrity_lable, ip, port, `status`)
-	  VALUES (_applicant_username, _conf_lable, _integrity_lable, _ip, _port, _status);
+	INSERT INTO Accept_Request_Log (sender_username, applicant_username, conf_lable, integrity_lable, ip, port, `status`)
+	  VALUES (_sender_username, _applicant_username, _conf_lable, _integrity_lable, _ip, _port, _status);
 	COMMIT;
 END$$
 
@@ -207,6 +208,24 @@ CREATE PROCEDURE add_show_my_account_log(
 BEGIN
 	START TRANSACTION;
 	INSERT INTO ShowMyAccount_Request_Log (username, ip, port, `status`)
+	  VALUES (_username, _ip, _port, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS add_show_my_join_request_log;
+DELIMITER $$
+CREATE PROCEDURE add_show_my_join_request_log(
+	IN _username VARCHAR(50),
+  IN _ip VARCHAR(20),
+  IN _port VARCHAR(6),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO ShowMyJoinRequests_Log (username, ip, port, `status`)
 	  VALUES (_username, _ip, _port, _status);
 	COMMIT;
 END$$
@@ -482,11 +501,11 @@ DROP PROCEDURE IF EXISTS five_Deposit;
 DELIMITER $$
 CREATE PROCEDURE five_Deposit(IN _account_no INT(10))
 BEGIN
-	SELECT *
-    FROM `Transaction`
+	SELECT from_account_no, amount, created_at
+  FROM `Transaction`
 	WHERE to_account_no = _account_no
         AND from_account_no <> _account_no
-	ORDER BY TIMESTAMP DESC
+	ORDER BY created_at DESC
 	LIMIT 5;
 END$$
 
@@ -497,11 +516,11 @@ DROP PROCEDURE IF EXISTS five_withdraw;
 DELIMITER $$
 CREATE PROCEDURE five_withdraw(IN _account_no INT(10))
 BEGIN
-	SELECT *
-    FROM `Transaction`
+	SELECT amount, created_at
+  FROM `Transaction`
 	WHERE from_account_no = _account_no
         AND to_account_no = _account_no
-	ORDER BY TIMESTAMP DESC
+	ORDER BY created_at DESC
 	LIMIT 5;
 END$$
 
@@ -617,6 +636,25 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS is_join_from_username_for_account;
+DELIMITER $$
+CREATE PROCEDURE is_join_from_username_for_account(
+  IN _username VARCHAR(50),
+  IN _account_no INT(10),
+  OUT _ret INT
+)
+BEGIN
+  SELECT EXISTS(
+    SELECT join_ID
+    FROM Join_Request
+    WHERE desired_account_no = _account_no
+      AND applicant_username = _username
+  ) INTO _ret;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS is_user_joint_account;
 DELIMITER $$
 CREATE PROCEDURE is_user_joint_account(
@@ -636,21 +674,51 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS my_own_account;
+DELIMITER $$
+CREATE PROCEDURE my_own_account(
+  IN _username VARCHAR(50),
+  OUT _ret INT(10)
+)
+BEGIN
+	SELECT account_no
+  INTO _ret
+  FROM Account
+	WHERE opener_ID = _username;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS Show_MyAccount;
 DELIMITER $$
 CREATE PROCEDURE Show_MyAccount(IN _username VARCHAR(50))
 BEGIN
     (
-        SELECT account_user.account_no AS account_no
+        SELECT account_no
         FROM Account_User
-        WHERE account_user.username = _username
+        WHERE username = _username
     )
    UNION
     (
-        SELECT account.account_no AS account_no
+        SELECT account_no
         FROM Account
-        WHERE account.opener_ID = _username
+        WHERE opener_ID = _username
     );
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS Show_MyJoinRequests;
+DELIMITER $$
+CREATE PROCEDURE Show_MyJoinRequests(IN _username VARCHAR(50))
+BEGIN
+	SELECT applicant_username
+  FROM Join_Request INNER JOIN Account
+    ON Join_Request.desired_account_no = Account.account_no
+  WHERE Join_Request.status = '0'
+    AND Account.opener_ID = _username;
 END$$
 
 DELIMITER ;

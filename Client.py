@@ -11,6 +11,46 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 
+def Accept(command, cmd, client, key):
+    """
+    :param command: Accept [username] [conf_label] [integrity_label]
+    :param cmd: list('Accept', conf_label, integrity_label)
+    :param client: socket of current client to server
+    :param key: session key
+    :return: status code (1: successful, 0: failure)
+    """
+    conf_label = ["TopSecret", "Secret", "Confidential", "Unclassified"]
+    integrity_label = ["VeryTrusted", "Trusted", "SlightlyTrusted", "Untrusted"]
+
+    if cmd[2] not in conf_label:
+        print("ERROR: Confidentiality label is not defined, Please try again and enter an allowable Confidentiality "
+              "label")
+        return 0
+    if cmd[3] not in integrity_label:
+        print("ERROR: Integrity label is not defined. Please try again and enter an allowable integrity label")
+        return 0
+
+    command = encrypt(command, key)
+    client.send(command.encode('utf-8'))
+
+    replay = client.recv(1024)
+    replay = replay.decode('utf-8')
+    replay = decrypt(replay, key)
+    replay = replay.split()
+    if replay[0] == "ok":
+        print("Accept request sent to the applicant successfully.")
+        return 1  # accept request sent successfully
+    elif replay[0] == "E0":
+        print("ERROR: There is no user with the given username.")
+        return 0  # accept request failed
+    elif replay[0] == "E1":
+        print("ERROR: There is no account registered for your username yet.")
+        return 0  # accept request failed
+    elif replay[0] == "E2":
+        print("ERROR: There is no pending join request from this username")
+        return 0  # accept request failed
+
+
 def Create(command, cmd, client, key):
     conf_label = ["TopSecret", "Secret", "Confidential", "Unclassified"]
     integrity_label = ["VeryTrusted", "Trusted", "SlightlyTrusted", "Untrusted"]
@@ -112,6 +152,42 @@ def encrypt(plaintext, key):
     return result
 
 
+def Join(command, cmd, client, key):
+    """
+    :param command: Join [account_no]
+    :param cmd: list('Join', account_no)
+    :param client: socket of current client to server
+    :param key: session key
+    :return: status code (1: successful, 0: failure)
+    """
+    if len(cmd[1]) != 10:
+        print("ERROR: Invalid account number. [Length(10)]")
+        return 0
+    if not (cmd[1].isnumeric()):
+        print("ERROR: Invalid account number. [Digits Only]")
+        return 0
+
+    command = encrypt(command, key)
+    client.send(command.encode('utf-8'))
+
+    replay = client.recv(1024)
+    replay = replay.decode('utf-8')
+    replay = decrypt(replay, key)
+    replay = replay.split()
+    if replay[0] == "ok":
+        print("Join request sent to the account owner successfully.")
+        return 1  # join request sent successfully
+    elif replay[0] == "E0":
+        print("ERROR: There is no account with the given account_no.")
+        return 0  # join request failed
+    elif replay[0] == "E1":
+        print("ERROR: This account is yours so you can not send join request for yourself")
+        return 0  # join request failed
+    elif replay[0] == "E2":
+        print("ERROR: you have joint to this account before so you can not send join request for it again")
+        return 0  # join request failed
+
+
 def key_exchange(client):
     backend = default_backend()
     client_private_key = ec.generate_private_key(ec.SECP256R1(), backend)
@@ -149,6 +225,80 @@ def Login(command, client, key):
         print("ERROR: Your Account is ban for {} seconds. try again later"
               .format(replay[1]))
         return 0  # Login failed
+
+
+def Show_Account(command, cmd, client, key):
+    """
+    :param command: Show_MyAccount
+    :param cmd: List('Show_Account', account_no)
+    :param client: socket of current client to server
+    :param key: session key
+    :return: status code (1: successful, 0: failure)
+    """
+    if len(cmd[1]) != 10:
+        print("ERROR: Invalid account number. [Length(10)]")
+        return 0
+    if not (cmd[1].isnumeric()):
+        print("ERROR: Invalid account number. [Digits Only]")
+        return 0
+
+    command = encrypt(command, key)
+    client.send(command.encode('utf-8'))
+
+    replay = client.recv(1024)
+    replay = replay.decode('utf-8')
+    replay = decrypt(replay, key)
+    replay = replay.split('~')
+    if replay[0] == "ok":
+        return [1, replay[1]]
+    elif replay[0] == "E0":
+        print("ERROR: There is no account with the given account_no.")
+        return [0]
+    elif replay[0] == "E1":
+        print("ERROR: Access denied. You are not permitted to get this account's information")
+        return [0]
+
+
+def Show_MyAccount(command, client, key):
+    """
+    :param command: Show_MyAccount
+    :param client: socket of current client to server
+    :param key: session key
+    :return: status code (1: successful, 0: failure)
+    """
+    command = encrypt(command, key)
+    client.send(command.encode('utf-8'))
+
+    replay = client.recv(1024)
+    replay = replay.decode('utf-8')
+    replay = decrypt(replay, key)
+    replay = replay.split('~')
+    if replay[0] == "ok":
+        return [1, replay[1]]
+    elif replay[0] == "E0":
+        print("ERROR: There is no account registered for your username yet.")
+        return [0]
+
+
+def Show_MyJoinRequests(command, client, key):
+    """
+    :param command: Show_MyJoinRequests
+    :param client: socket of current client to server
+    :param key: session key
+    :return: status code (1: successful, 0: failure)
+    """
+    command = encrypt(command, key)
+    client.send(command.encode('utf-8'))
+
+    replay = client.recv(1024)
+    replay = replay.decode('utf-8')
+    replay = decrypt(replay, key)
+    replay = replay.split('~')
+    if replay[0] == "ok":
+        return [1, replay[1]]
+    elif replay[0] == "E0":
+        print("ERROR: There is no account registered for your username yet.")
+        return [0]
 
 
 def Signup(command, client, key):
@@ -239,15 +389,29 @@ if __name__ == '__main__':
         )
         help_message2 = (
                 'Available commands:\n' +
-                '\tCreate           \tCreate [account_type] [amount] [conf_label] [integrity_label]\n' +
-                '\t\tAccount Type:  Short-term saving account = 0, Long-term saving account = 1, Current account = 2, '
-                'Gharz al-Hasna saving account = 3\n' +
-                '\tJoin             \tJoin [account_no]\n' +
-                '\tAccept           \tAccept [username] [conf_label] [integrity_label]\n' +
-                '\tShow_MyAccount   \tShow_MyAccount\n' +
-                '\tShow_Account     \tShow_Account [account_no]\n' +
-                '\tDeposit          \tDeposit [from_account_no] [to_account_no] [amount]\n' +
-                '\tWithdraw         \tWithdraw [account_no] [amount]\n' +
+                '\tCreate              \tCreate [account_type] [amount] [conf_label] [integrity_label]\n' +
+                '\t|____ Account Types:  \n' +
+                '\t|\t |___ Short-term saving account = 0\n' +
+                '\t|\t |___ Long-term saving account = 1\n' +
+                '\t|\t |___ Current account = 2\n' +
+                '\t|\t |___ Gharz al-Hasna saving account = 3\n' +
+                '\t|____ Confidentiality labels:    \n' +
+                '\t|\t |___ TopSecret\n' +
+                '\t|\t |___ Secret\n' +
+                '\t|\t |___ Confidential\n' +
+                '\t|\t |___ Unclassified\n' +
+                '\t|____ Integrity labels:    \n' +
+                '\t|\t |___ VeryTrusted\n' +
+                '\t|\t |___ Trusted\n' +
+                '\t|\t |___ SlightlyTrusted\n' +
+                '\t|\t |___ Untrusted\n' +
+                '\tJoin                \tJoin [account_no]\n' +
+                '\tShow_MyJoinRequests \tShow_MyJoinRequests\n' +
+                '\tAccept              \tAccept [username] [conf_label] [integrity_label]\n' +
+                '\tShow_MyAccount      \tShow_MyAccount\n' +
+                '\tShow_Account        \tShow_Account [account_no]\n' +
+                '\tDeposit             \tDeposit [from_account_no] [to_account_no] [amount]\n' +
+                '\tWithdraw            \tWithdraw [account_no] [amount]\n' +
                 '\tHelp\n' +
                 '\tExit\n'
         )
@@ -262,11 +426,32 @@ if __name__ == '__main__':
                 if cmd[0] == "Create" and len(cmd) == 5:
                     Create(command, cmd, client, session_key)
 
-                elif cmd[0] == "Withdraw" and len(cmd) == 3:
-                    Withdraw(command, cmd, client, session_key)
+                elif cmd[0] == "Join" and len(cmd) == 2:
+                    Join(command, cmd, client, session_key)
+
+                elif cmd[0] == "Show_MyJoinRequests" and len(cmd) == 1:
+                    replay = Show_MyJoinRequests(command, client, session_key)
+                    if replay[0]:
+                        print(replay[1])
+
+                elif cmd[0] == "Accept" and len(cmd) == 4:
+                    Accept(command, cmd, client, session_key)
+
+                elif cmd[0] == "Show_MyAccount" and len(cmd) == 1:
+                    replay = Show_MyAccount(command, client, session_key)
+                    if replay[0]:
+                        print(replay[1])
+
+                elif cmd[0] == "Show_Account" and len(cmd) == 2:
+                    replay = Show_Account(command, cmd, client, session_key)
+                    if replay[0]:
+                        print(replay[1])
 
                 elif cmd[0] == "Deposit" and len(cmd) == 4:
                     Deposit(command, cmd, client, session_key)
+
+                elif cmd[0] == "Withdraw" and len(cmd) == 3:
+                    Withdraw(command, cmd, client, session_key)
 
                 elif cmd[0] == "Help" and len(cmd) == 1:
                     print(help_message2)
