@@ -2,6 +2,7 @@ import _thread
 import base64
 import hashlib
 import json
+import numpy as np
 import os
 import secrets
 import socket
@@ -74,6 +75,38 @@ def client_service(client):
 
                 msg = encrypt(account_no, session_key)
                 client.send(msg.encode('utf-8'))
+
+            elif command[0] == "Join" and len(command) == 2:
+                join_request(command[1], username)
+
+            elif command[0] == "Accept" and len(command) == 4:
+                accept_request(command[1], command[2], command[3], username)
+
+            elif command[0] == "Show_MyJoinRequests" and len(command) == 1:
+                msg = Show_MyJoinRequests(username)
+                cipher_text = encrypt(msg, session_key)
+                if cipher_text is None:
+                    return 0
+                if cipher_text is not None:
+                    client.send(cipher_text.encode('utf-8'))
+
+            elif command[0] == "Show_Account" and len(command) == 2:
+                if is_account_owner(username, command[1]) or (  # DAC
+                        # MAC
+                        int(is_user_joint_account(username, int(command[1])))
+                        and
+                        int(get_user_integrity_label(int(command[1]), username)) >=
+                        int(get_account_integrity_label(int(command[1])))
+                        and
+                        int(get_user_conf_label(int(command[1]), username)) <=
+                        int(get_account_conf_label(int(command[1])))
+                ):
+                    msg = show_account_info(username, command[1])
+                    cipher_text = encrypt(msg, session_key)
+                    if cipher_text is None:
+                        return 0
+                    if cipher_text is not None:
+                        client.send(cipher_text.encode('utf-8'))
 
             elif command[0] == "Deposit" and len(command) == 4:
                 """
@@ -225,7 +258,7 @@ def client_service(client):
                 if (wrong_password == 5 or wrong_password == 0) and (not check_ban(command[1])[0]):
                     update_ban(command[1])
                 # elif  wrong_password < 0:
-                    # honeypot
+                # honeypot
 
                 # Login log
                 add_login_log(command[1], command[2], client.getpeername()[0], client.getpeername()[1], str(status))
@@ -244,6 +277,24 @@ def client_service(client):
           .format(c_IP, c_port, str(datetime.now())))
     client.close()
     count = count - 1
+
+
+def accept_request(selected_username, selected_conf_label, selected_integrity_label, username):
+    cursor = connection.cursor()
+    cursor.callproc('my_own_account', [username, 0])
+    for result in cursor.stored_results():
+        my_own_account = result.fetchall()
+    cursor.close()
+    cursor = connection.cursor()
+    cursor.callproc('accept_join_request', [selected_username, my_own_account[0][0],
+                                            selected_conf_label, selected_integrity_label])
+    cursor.close()
+    status = '1'
+    # log:
+    cursor = connection.cursor()
+    cursor.callproc('add_accept_log', [selected_username, username, selected_conf_label,
+                                       selected_integrity_label, client.getpeername()[0],
+                                       client.getpeername()[1], status])
 
 
 def add_account(username, account_type, amount, conf_label, integrity_label):
@@ -522,11 +573,15 @@ def is_user_joint_account(username, account_no):
     return result_args[2]
 
 
-def update_ban(username):
+def join_request(selected_account_no, username):
     cursor = connection.cursor()
-    args = [username]
-    cursor.callproc('update_ban', args)
+    cursor.callproc('create_join_request', [username, selected_account_no])
     cursor.close()
+    status = '1'
+    # log:
+    cursor = connection.cursor()
+    cursor.callproc('add_join_log', [username, selected_account_no, client.getpeername()[0],
+                                     client.getpeername()[1], status])
 
 
 def key_exchange(client):
@@ -541,6 +596,99 @@ def key_exchange(client):
     secret_key = HKDF(hashes.SHA256(), 32, None, b'Key Exchange', backend).derive(shared_data)
     session_key = secret_key[-16:]
     return session_key
+
+
+def show_account_info(username, selected_account_no):
+    # account_info:
+    cursor = connection.cursor()
+    cursor.callproc('account_info', [selected_account_no])
+    for result in cursor.stored_results():
+        account_info = result.fetchall()
+    topics = np.array(("*Type*", "*Creation Date*", "*Amount*", "*Owner*"))
+    account_info = np.insert(account_info, 0, topics, 0)
+    s = [[str(e) for e in row] for row in account_info]
+    lens = [max(map(len, col)) for col in zip(*s)]
+    fmt = "\t".join("{{:{}}}".format(x) for x in lens)
+    table = [fmt.format(*row) for row in s]
+    account_info_ret = "- Information of account '" + str(selected_account_no) + "':\n"
+    account_info_ret = account_info_ret + '\n'.join(table)
+    cursor.close()
+    # five_Deposit:
+    cursor = connection.cursor()
+    cursor.callproc('five_Deposit', [selected_account_no])
+    for result in cursor.stored_results():
+        five_Deposit = result.fetchall()
+    if len(five_Deposit) != 0:
+        topics = np.array(("*Origin*", "*Amount*", "*Date*"))
+        five_Deposit = np.insert(five_Deposit, 0, topics, 0)
+        s = [[str(e) for e in row] for row in five_Deposit]
+        lens = [max(map(len, col)) for col in zip(*s)]
+        fmt = "\t".join("{{:{}}}".format(x) for x in lens)
+        table = [fmt.format(*row) for row in s]
+        five_Deposit_table = "- Five last deposits to account '" + str(selected_account_no) + "':\n"
+        five_Deposit_table = five_Deposit_table + '\n'.join(table)
+    else:
+        five_Deposit_table = ""
+    cursor.close()
+    # five_withdraw:
+    cursor = connection.cursor()
+    cursor.callproc('five_withdraw', [selected_account_no])
+    for result in cursor.stored_results():
+        five_withdraw = result.fetchall()
+    if len(five_withdraw) != 0:
+        topics = np.array(("*Amount*", "*Date*"))
+        five_withdraw = np.insert(five_withdraw, 0, topics, 0)
+        s = [[str(e) for e in row] for row in five_withdraw]
+        lens = [max(map(len, col)) for col in zip(*s)]
+        fmt = "\t".join("{{:{}}}".format(x) for x in lens)
+        table = [fmt.format(*row) for row in s]
+        five_withdraw_table = "- Five last withdraws from account '" + str(selected_account_no) + "':\n"
+        five_withdraw_table = five_withdraw_table + '\n'.join(table)
+    else:
+        five_withdraw_table = ""
+    cursor.close()
+    status = '1'
+    # log:
+    cursor = connection.cursor()
+    cursor.callproc('add_show_account_log', [username, selected_account_no, client.getpeername()[0],
+                                             client.getpeername()[1], status])
+    return account_info_ret + "\n\n" + five_Deposit_table + "\n\n" + five_withdraw_table
+
+
+def show_my_account(username):
+    cursor = connection.cursor()
+    cursor.callproc('Show_MyAccount', [username])
+    for result in cursor.stored_results():
+        query_result = result.fetchall()
+    ret = "Your Accounts:"
+    for i in range(len(query_result)):
+        ret = ret + "\n" + str(query_result[i][0])
+    cursor.close()
+    status = '1'
+    # log:
+    cursor = connection.cursor()
+    cursor.callproc('add_show_my_account_log', [username, client.getpeername()[0],
+                                                client.getpeername()[1], status])
+    return ret
+
+
+def Show_MyJoinRequests(username):
+    cursor = connection.cursor()
+    cursor.callproc('Show_MyJoinRequests', [username])
+    for result in cursor.stored_results():
+        query_result = result.fetchall()
+    ret = "Your Join Requests:"
+    for i in range(len(query_result)):
+        ret = ret + "\n" + str(query_result[i][0])
+    cursor.close()
+    return ret
+
+
+def update_ban(username):
+    cursor = connection.cursor()
+    args = [username]
+    cursor.callproc('update_ban', args)
+    cursor.close()
 
 
 def withdraw(username, account_no, amount):

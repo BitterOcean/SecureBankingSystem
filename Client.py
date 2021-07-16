@@ -151,6 +151,30 @@ def Login(command, client, key):
         return 0  # Login failed
 
 
+def request(command, client, session_key):
+    cipher_text = encrypt(command, session_key)
+    if cipher_text is None:
+        return 0
+    if cipher_text is not None:
+        client.send(cipher_text.encode('utf-8'))
+        return 1
+
+
+def show(command, client, session_key):
+    cipher_text = encrypt(command, session_key)
+    if cipher_text is None:
+        return 0
+    if cipher_text is not None:
+        client.send(cipher_text.encode('utf-8'))
+        replay = client.recv(1024)
+        replay = replay.decode('utf-8')
+        plain_text = decrypt(replay, session_key)
+        if plain_text is None:
+            return 0
+        if plain_text is not None:
+            return plain_text
+
+
 def Signup(command, client, key):
     command = encrypt(command, key)
     client.send(command.encode('utf-8'))
@@ -262,11 +286,31 @@ if __name__ == '__main__':
                 if cmd[0] == "Create" and len(cmd) == 5:
                     Create(command, cmd, client, session_key)
 
-                elif cmd[0] == "Withdraw" and len(cmd) == 3:
-                    Withdraw(command, cmd, client, session_key)
+                elif cmd[0] == "Join" and len(cmd) == 2:
+                    replay = request(command, client, session_key)
+                    if replay != 0:
+                        print("Request Sent!")
+
+                elif cmd[0] == "Accept" and len(cmd) == 4:
+                    replay = request(command, client, session_key)
+                    if replay != 0:
+                        print("Request Sent!")
+
+                elif cmd[0] == "Show_MyAccount" and len(cmd) == 1:
+                    replay = show(command, client, session_key)
+                    if replay != 0:
+                        print(replay)
+
+                elif cmd[0] == "Show_Account" and len(cmd) == 2:
+                    replay = show(command, client, session_key)
+                    if replay != 0:
+                        print(replay)
 
                 elif cmd[0] == "Deposit" and len(cmd) == 4:
                     Deposit(command, cmd, client, session_key)
+
+                elif cmd[0] == "Withdraw" and len(cmd) == 3:
+                    Withdraw(command, cmd, client, session_key)
 
                 elif cmd[0] == "Help" and len(cmd) == 1:
                     print(help_message2)
