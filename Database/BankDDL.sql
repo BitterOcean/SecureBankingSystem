@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS Login_Request_Log;
 DROP TABLE IF EXISTS Create_Request_Log;
 DROP TABLE IF EXISTS Join_Request_Log;
 DROP TABLE IF EXISTS Accept_Request_Log;
+drop TABLE IF EXISTS ShowMyJoinRequests_Log;
 DROP TABLE IF EXISTS ShowMyAccount_Request_Log;
 DROP TABLE IF EXISTS ShowAccount_Request_Log;
 DROP TABLE IF EXISTS Deposit_Request_Log;
@@ -145,6 +146,16 @@ CREATE TABLE Accept_Request_Log (
 
 CREATE TABLE ShowMyAccount_Request_Log (
   showMyAccount_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NULL,
+  ip VARCHAR(20) NULL,
+	port VARCHAR(20) NULL,
+  `status` VARCHAR(1) CHECK(`status` in ('1', '0') ), -- 0: failure, 1: successful
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE ShowMyJoinRequests_Log (
+  showMyJoinRequests_log_ID INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NULL,
   ip VARCHAR(20) NULL,
 	port VARCHAR(20) NULL,

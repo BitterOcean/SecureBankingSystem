@@ -2,7 +2,6 @@ import _thread
 import base64
 import hashlib
 import json
-import numpy as np
 import os
 import secrets
 import socket
@@ -10,6 +9,7 @@ import string
 from datetime import datetime
 
 import mysql.connector
+import numpy as np
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
@@ -77,36 +77,145 @@ def client_service(client):
                 client.send(msg.encode('utf-8'))
 
             elif command[0] == "Join" and len(command) == 2:
-                join_request(command[1], username)
+                """
+                :command: Join [account_no]
+                """
+                status = '0'
+                my_account_no = get_my_own_account_no(username)
+                if check_account_number(int(command[1])):  # valid account_no
+                    if my_account_no is None or int(my_account_no) != int(command[1]):  # not my own account
+                        if not (is_user_joint_account(username, int(command[1]))):  # valid accept request
+                            join_request(username, int(command[1]))
+                            msg = "ok " + str(datetime.now())
+                            status = '1'
+                        else:
+                            msg = "E2 " + str(datetime.now())  # joint previously
+                    else:
+                        msg = "E1 " + str(datetime.now())  # your own account !
+                else:
+                    msg = "E0 " + str(datetime.now())  # invalid account_no
 
-            elif command[0] == "Accept" and len(command) == 4:
-                accept_request(command[1], command[2], command[3], username)
+                add_join_log(username, command[1], client.getpeername()[0], client.getpeername()[1], status)
+
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
 
             elif command[0] == "Show_MyJoinRequests" and len(command) == 1:
-                msg = Show_MyJoinRequests(username)
-                cipher_text = encrypt(msg, session_key)
-                if cipher_text is None:
-                    return 0
-                if cipher_text is not None:
-                    client.send(cipher_text.encode('utf-8'))
+                """
+                :command: Show_MyJoinRequests
+                """
+                status = '0'
+                my_account_no = get_my_own_account_no(username)
+                if my_account_no is not None:  # I have an account
+                    msg = "ok~" + Show_MyJoinRequests(username)
+                    status = '1'
+                else:
+                    msg = "E0~" + str(datetime.now())  # There is no account registered for your username yet.
+
+                add_show_my_join_request_log(username, client.getpeername()[0], client.getpeername()[1], status)
+
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
+
+            elif command[0] == "Accept" and len(command) == 4:
+                """
+                :command: Accept [username] [conf_label] [integrity_label]
+                :In Database:    
+                    conf_label = {
+                      "TopSecret"    : '1',
+                      "Secret"       : '2',
+                      "Confidential" : '3',
+                      "Unclassified" : '4',
+                    }
+                    integrity_label = {
+                      "VeryTrusted"    : '1',
+                      "Trusted"        : '2',
+                      "SlightlyTrusted": '3',
+                      "Untrusted"      : '4',
+                    }
+                """
+                status = '0'
+                my_account_no = get_my_own_account_no(username)
+                if check_username(command[1]):  # valid username
+                    if my_account_no is not None:  # have account before
+                        if is_join_from_username_for_account(command[1], int(my_account_no)):  # valid accept request
+                            accept_request(command[1], command[2], command[3], username)
+                            msg = "ok " + str(datetime.now())
+                            status = '1'
+                        else:
+                            msg = "E2 " + str(datetime.now())  # no join request from this applicant before
+                    else:
+                        msg = "E1 " + str(datetime.now())  # no account registered for your username
+                else:
+                    msg = "E0 " + str(datetime.now())  # invalid username
+
+                add_accept_log(command[1], username, command[2], command[3], client.getpeername()[0],
+                               client.getpeername()[1], status)
+
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
+
+            elif command[0] == "Show_MyAccount" and len(command) == 1:
+                """
+                :command: Show_MyAccount
+                """
+                status = '0'
+                my_account_no = get_my_own_account_no(username)
+                if my_account_no is not None:  # I have an account
+                    msg = "ok~" + show_my_account(username)
+                    status = '1'
+                else:
+                    msg = "E0~" + str(datetime.now())  # There is no account registered for your username yet.
+
+                add_show_my_account_log(username, client.getpeername()[0], client.getpeername()[1], status)
+
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
 
             elif command[0] == "Show_Account" and len(command) == 2:
-                if is_account_owner(username, command[1]) or (  # DAC
-                        # MAC
-                        int(is_user_joint_account(username, int(command[1])))
-                        and
-                        int(get_user_integrity_label(int(command[1]), username)) >=
-                        int(get_account_integrity_label(int(command[1])))
-                        and
-                        int(get_user_conf_label(int(command[1]), username)) <=
-                        int(get_account_conf_label(int(command[1])))
-                ):
-                    msg = show_account_info(username, command[1])
-                    cipher_text = encrypt(msg, session_key)
-                    if cipher_text is None:
-                        return 0
-                    if cipher_text is not None:
-                        client.send(cipher_text.encode('utf-8'))
+                """
+                :command: Show_Account [account_no]
+                :Access Control Strategy to withdraw from_account_no:
+                    1. Integrity(User)       <= Integrity(Account)
+                    2. Confidentiality(User) >= Confidentiality(Account)
+                :Access Control Strategy to deposit to_account_no: everyone has access
+                :In Database:    
+                    conf_label = {
+                      "TopSecret"    : '1',
+                      "Secret"       : '2',
+                      "Confidential" : '3',
+                      "Unclassified" : '4',
+                    }
+                    integrity_label = {
+                      "VeryTrusted"    : '1',
+                      "Trusted"        : '2',
+                      "SlightlyTrusted": '3',
+                      "Untrusted"      : '4',
+                    }
+                """
+                status = '0'
+                if check_account_number(int(command[1])) == 1:  # account_no exists
+                    if is_account_owner(username, command[1]) or (  # DAC
+                            # MAC
+                            int(is_user_joint_account(username, int(command[1])))
+                            and
+                            int(get_user_integrity_label(int(command[1]), username)) >=
+                            int(get_account_integrity_label(int(command[1])))
+                            and
+                            int(get_user_conf_label(int(command[1]), username)) <=
+                            int(get_account_conf_label(int(command[1])))
+                    ):
+                        msg = 'ok~' + show_account_info(command[1])
+                        status = '1'
+                    else:
+                        msg = "E1~" + str(datetime.now())  # Access denied
+                else:
+                    msg = "E0~" + str(datetime.now())  # account_no NOT exists
+
+                add_show_account_log(username, command[1], client.getpeername()[0], client.getpeername()[1], status)
+
+                msg = encrypt(msg, session_key)
+                client.send(msg.encode('utf-8'))
 
             elif command[0] == "Deposit" and len(command) == 4:
                 """
@@ -279,22 +388,39 @@ def client_service(client):
     count = count - 1
 
 
-def accept_request(selected_username, selected_conf_label, selected_integrity_label, username):
+def accept_request(selected_username, my_own_account_no, selected_conf_label, selected_integrity_label):
     cursor = connection.cursor()
-    cursor.callproc('my_own_account', [username, 0])
-    for result in cursor.stored_results():
-        my_own_account = result.fetchall()
+    args = [selected_username, my_own_account_no, selected_conf_label, selected_integrity_label]
+    cursor.callproc('accept_join_request', args)
     cursor.close()
+
+
+def add_accept_log(applicant_username, sender_username, conf_lable, integrity_lable, ip, port, status):
+    """
+    :param applicant_username: VARCHAR(50)
+    :param sender_username: account owner username VARCHAR(50)
+    :param conf_lable: VARCHAR(1)
+    :conf_labels: {
+      "TopSecret"    : '1',
+      "Secret"       : '2',
+      "Confidential" : '3',
+      "Unclassified" : '4',
+    }
+    :param integrity_lable: VARCHAR(1)
+    :integrity_labels: {
+      "VeryTrusted"    : '1',
+      "Trusted"        : '2',
+      "SlightlyTrusted": '3',
+      "Untrusted"      : '4',
+    }
+    :param ip: VARCHAR(20)
+    :param port: VARCHAR(20)
+    :param status: VARCHAR(1) check(0: failure, 1: successful)
+    """
     cursor = connection.cursor()
-    cursor.callproc('accept_join_request', [selected_username, my_own_account[0][0],
-                                            selected_conf_label, selected_integrity_label])
+    args = [applicant_username, sender_username, conf_lable, integrity_lable, ip, port, status]
+    cursor.callproc('add_accept_log', args)
     cursor.close()
-    status = '1'
-    # log:
-    cursor = connection.cursor()
-    cursor.callproc('add_accept_log', [selected_username, username, selected_conf_label,
-                                       selected_integrity_label, client.getpeername()[0],
-                                       client.getpeername()[1], status])
 
 
 def add_account(username, account_type, amount, conf_label, integrity_label):
@@ -321,18 +447,17 @@ def add_deposit_log(username, from_account_no, to_account_no, amount, ip, port, 
     cursor.close()
 
 
-def add_withdraw_log(username, account_no, amount, ip, port, status):
+def add_join_log(username, account_no, ip, port, status):
     """
-    :param username: username of the client who send deposit request VARCHAR(50)
-    :param account_no: destination account number INT(20)
-    :param amount: DECIMAL(11, 4)
+    :param username: username of the client who send join request VARCHAR(50)
+    :param account_no: the account number that applicant wanted to join to INT(20)
     :param ip: VARCHAR(20)
     :param port: VARCHAR(20)
     :param status: status code VARCHAR(1) check(0: failure, 1: successful)
     """
     cursor = connection.cursor()
-    args = [username, account_no, amount, ip, port, status]
-    cursor.callproc('add_withdraw_log', args)
+    args = [username, account_no, ip, port, status]
+    cursor.callproc('add_join_log', args)
     cursor.close()
 
 
@@ -343,6 +468,46 @@ def add_login_log(username, password, status, ip, port):
     hash_password = str(hash_password)
     args = [username, hash_password, salt, status, ip, port]
     cursor.callproc('add_login_log', args)
+    cursor.close()
+
+
+def add_show_account_log(username, account_no, ip, port, status):
+    """
+    :param username: username of the client who send Show_MyJoinRequests request VARCHAR(50)
+    :param account_no: the account number that applicant wanted to show its info INT(20)
+    :param ip: VARCHAR(20)
+    :param port: VARCHAR(20)
+    :param status: status code VARCHAR(1) check(0: failure, 1: successful)
+    """
+    cursor = connection.cursor()
+    args = [username, account_no, ip, port, status]
+    cursor.callproc('add_show_account_log', args)
+    cursor.close()
+
+
+def add_show_my_account_log(username, ip, port, status):
+    """
+    :param username: username of the client who send Show_MyJoinRequests request VARCHAR(50)
+    :param ip: VARCHAR(20)
+    :param port: VARCHAR(20)
+    :param status: status code VARCHAR(1) check(0: failure, 1: successful)
+    """
+    cursor = connection.cursor()
+    args = [username, ip, port, status]
+    cursor.callproc('add_show_my_account_log', args)
+    cursor.close()
+
+
+def add_show_my_join_request_log(username, ip, port, status):
+    """
+    :param username: username of the client who send Show_MyJoinRequests request VARCHAR(50)
+    :param ip: VARCHAR(20)
+    :param port: VARCHAR(20)
+    :param status: status code VARCHAR(1) check(0: failure, 1: successful)
+    """
+    cursor = connection.cursor()
+    args = [username, ip, port, status]
+    cursor.callproc('add_show_my_join_request_log', args)
     cursor.close()
 
 
@@ -363,6 +528,21 @@ def add_user(username, password):
     hash_password = str(hash_password)
     args = [username, hash_password, salt]
     cursor.callproc('add_user', args)
+    cursor.close()
+
+
+def add_withdraw_log(username, account_no, amount, ip, port, status):
+    """
+    :param username: username of the client who send deposit request VARCHAR(50)
+    :param account_no: destination account number INT(20)
+    :param amount: DECIMAL(11, 4)
+    :param ip: VARCHAR(20)
+    :param port: VARCHAR(20)
+    :param status: status code VARCHAR(1) check(0: failure, 1: successful)
+    """
+    cursor = connection.cursor()
+    args = [username, account_no, amount, ip, port, status]
+    cursor.callproc('add_withdraw_log', args)
     cursor.close()
 
 
@@ -488,6 +668,18 @@ def get_account_integrity_label(account_no):
     return result_args[1]
 
 
+def get_my_own_account_no(username):
+    """
+    :param username: VARCHAR(50)
+    :return: my own account number
+    """
+    cursor = connection.cursor()
+    args = [username, 0]
+    result_args = cursor.callproc('my_own_account', args)
+    cursor.close()
+    return result_args[1]
+
+
 def get_user_conf_label(account_no, username):
     """
     :param account_no: account number INT(10)
@@ -558,6 +750,22 @@ def is_password_strong(username, password):
     return '1'
 
 
+def is_join_from_username_for_account(username, account_no):
+    """
+    :param account_no: account number INT(10)
+    :param username: username VARCHAR(50)
+    :return: status code 0: there is no
+             join req from this username
+             for this account_no before
+             and 1 for otherwise
+    """
+    cursor = connection.cursor()
+    args = [username, account_no, 0]
+    result_args = cursor.callproc('is_join_from_username_for_account', args)
+    cursor.close()
+    return result_args[2]
+
+
 def is_user_joint_account(username, account_no):
     """
     :param account_no: account number INT(10)
@@ -573,15 +781,11 @@ def is_user_joint_account(username, account_no):
     return result_args[2]
 
 
-def join_request(selected_account_no, username):
+def join_request(username, account_no):
     cursor = connection.cursor()
-    cursor.callproc('create_join_request', [username, selected_account_no])
+    args = [username, account_no]
+    cursor.callproc('create_join_request', args)
     cursor.close()
-    status = '1'
-    # log:
-    cursor = connection.cursor()
-    cursor.callproc('add_join_log', [username, selected_account_no, client.getpeername()[0],
-                                     client.getpeername()[1], status])
 
 
 def key_exchange(client):
@@ -598,10 +802,10 @@ def key_exchange(client):
     return session_key
 
 
-def show_account_info(username, selected_account_no):
+def show_account_info(account_no):
     # account_info:
     cursor = connection.cursor()
-    cursor.callproc('account_info', [selected_account_no])
+    cursor.callproc('account_info', [account_no])
     for result in cursor.stored_results():
         account_info = result.fetchall()
     topics = np.array(("*Type*", "*Creation Date*", "*Amount*", "*Owner*"))
@@ -610,12 +814,13 @@ def show_account_info(username, selected_account_no):
     lens = [max(map(len, col)) for col in zip(*s)]
     fmt = "\t".join("{{:{}}}".format(x) for x in lens)
     table = [fmt.format(*row) for row in s]
-    account_info_ret = "- Information of account '" + str(selected_account_no) + "':\n"
+    account_info_ret = "- Information of account '" + str(account_no) + "':\n"
     account_info_ret = account_info_ret + '\n'.join(table)
     cursor.close()
+
     # five_Deposit:
     cursor = connection.cursor()
-    cursor.callproc('five_Deposit', [selected_account_no])
+    cursor.callproc('five_Deposit', [account_no])
     for result in cursor.stored_results():
         five_Deposit = result.fetchall()
     if len(five_Deposit) != 0:
@@ -625,14 +830,15 @@ def show_account_info(username, selected_account_no):
         lens = [max(map(len, col)) for col in zip(*s)]
         fmt = "\t".join("{{:{}}}".format(x) for x in lens)
         table = [fmt.format(*row) for row in s]
-        five_Deposit_table = "- Five last deposits to account '" + str(selected_account_no) + "':\n"
+        five_Deposit_table = "- Five last deposits to account '" + str(account_no) + "':\n"
         five_Deposit_table = five_Deposit_table + '\n'.join(table)
     else:
-        five_Deposit_table = ""
+        five_Deposit_table = "- Five last deposits to account '" + str(account_no) + "':\n"
     cursor.close()
+
     # five_withdraw:
     cursor = connection.cursor()
-    cursor.callproc('five_withdraw', [selected_account_no])
+    cursor.callproc('five_withdraw', [account_no])
     for result in cursor.stored_results():
         five_withdraw = result.fetchall()
     if len(five_withdraw) != 0:
@@ -642,16 +848,12 @@ def show_account_info(username, selected_account_no):
         lens = [max(map(len, col)) for col in zip(*s)]
         fmt = "\t".join("{{:{}}}".format(x) for x in lens)
         table = [fmt.format(*row) for row in s]
-        five_withdraw_table = "- Five last withdraws from account '" + str(selected_account_no) + "':\n"
+        five_withdraw_table = "- Five last withdraws from account '" + str(account_no) + "':\n"
         five_withdraw_table = five_withdraw_table + '\n'.join(table)
     else:
-        five_withdraw_table = ""
+        five_withdraw_table = "- Five last withdraws from account '" + str(account_no) + "':\n"
     cursor.close()
-    status = '1'
-    # log:
-    cursor = connection.cursor()
-    cursor.callproc('add_show_account_log', [username, selected_account_no, client.getpeername()[0],
-                                             client.getpeername()[1], status])
+
     return account_info_ret + "\n\n" + five_Deposit_table + "\n\n" + five_withdraw_table
 
 
@@ -664,11 +866,6 @@ def show_my_account(username):
     for i in range(len(query_result)):
         ret = ret + "\n" + str(query_result[i][0])
     cursor.close()
-    status = '1'
-    # log:
-    cursor = connection.cursor()
-    cursor.callproc('add_show_my_account_log', [username, client.getpeername()[0],
-                                                client.getpeername()[1], status])
     return ret
 
 
@@ -677,9 +874,12 @@ def Show_MyJoinRequests(username):
     cursor.callproc('Show_MyJoinRequests', [username])
     for result in cursor.stored_results():
         query_result = result.fetchall()
-    ret = "Your Join Requests:"
-    for i in range(len(query_result)):
-        ret = ret + "\n" + str(query_result[i][0])
+    if query_result is not None:
+        ret = "Your Join Requests:"
+        for i in range(len(query_result)):
+            ret = ret + "\n" + str(query_result[i][0])
+    else:
+        ret = "There is no join request for you..."
     cursor.close()
     return ret
 

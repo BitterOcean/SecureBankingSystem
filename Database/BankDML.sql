@@ -215,6 +215,24 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS add_show_my_join_request_log;
+DELIMITER $$
+CREATE PROCEDURE add_show_my_join_request_log(
+	IN _username VARCHAR(50),
+  IN _ip VARCHAR(20),
+  IN _port VARCHAR(6),
+  IN _status VARCHAR(1)
+)
+BEGIN
+	START TRANSACTION;
+	INSERT INTO ShowMyJoinRequests_Log (username, ip, port, `status`)
+	  VALUES (_username, _ip, _port, _status);
+	COMMIT;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS add_signup_log;
 DELIMITER $$
 CREATE PROCEDURE add_signup_log(
@@ -618,6 +636,25 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS is_join_from_username_for_account;
+DELIMITER $$
+CREATE PROCEDURE is_join_from_username_for_account(
+  IN _username VARCHAR(50),
+  IN _account_no INT(10),
+  OUT _ret INT
+)
+BEGIN
+  SELECT EXISTS(
+    SELECT join_ID
+    FROM Join_Request
+    WHERE desired_account_no = _account_no
+      AND applicant_username = _username
+  ) INTO _ret;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS is_user_joint_account;
 DELIMITER $$
 CREATE PROCEDURE is_user_joint_account(
@@ -641,10 +678,11 @@ DROP PROCEDURE IF EXISTS my_own_account;
 DELIMITER $$
 CREATE PROCEDURE my_own_account(
   IN _username VARCHAR(50),
-  OUT _account_no INT(10)
+  OUT _ret INT(10)
 )
 BEGIN
 	SELECT account_no
+  INTO _ret
   FROM Account
 	WHERE opener_ID = _username;
 END$$
@@ -657,15 +695,15 @@ DELIMITER $$
 CREATE PROCEDURE Show_MyAccount(IN _username VARCHAR(50))
 BEGIN
     (
-        SELECT account_user.account_no AS account_no
+        SELECT account_no
         FROM Account_User
-        WHERE account_user.username = _username
+        WHERE username = _username
     )
    UNION
     (
-        SELECT account.account_no AS account_no
+        SELECT account_no
         FROM Account
-        WHERE account.opener_ID = _username
+        WHERE opener_ID = _username
     );
 END$$
 
@@ -677,7 +715,7 @@ DELIMITER $$
 CREATE PROCEDURE Show_MyJoinRequests(IN _username VARCHAR(50))
 BEGIN
 	SELECT applicant_username
-  FROM Join_Request INNER JOIN account
+  FROM Join_Request INNER JOIN Account
     ON Join_Request.desired_account_no = Account.account_no
   WHERE Join_Request.status = '0'
     AND Account.opener_ID = _username;
