@@ -132,6 +132,7 @@ CREATE TABLE Join_Request_Log (
 
 CREATE TABLE Accept_Request_Log (
   accept_log_ID INT AUTO_INCREMENT PRIMARY KEY,
+  sender_username VARCHAR(50) NULL,
   applicant_username VARCHAR(50) NULL,
   conf_lable VARCHAR(1) NULL,
 	integrity_lable VARCHAR(1) NULL,
