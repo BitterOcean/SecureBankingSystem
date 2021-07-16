@@ -11,6 +11,18 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def Accept(command, cmd, client, key):
     """
     :param command: Accept [username] [conf_label] [integrity_label]
@@ -23,11 +35,12 @@ def Accept(command, cmd, client, key):
     integrity_label = ["VeryTrusted", "Trusted", "SlightlyTrusted", "Untrusted"]
 
     if cmd[2] not in conf_label:
-        print("ERROR: Confidentiality label is not defined, Please try again and enter an allowable Confidentiality "
-              "label")
+        print(bcolors.FAIL + "ERROR: Confidentiality label is not defined, Please try again and enter an allowable "
+                             "Confidentiality label" + bcolors.ENDC)
         return 0
     if cmd[3] not in integrity_label:
-        print("ERROR: Integrity label is not defined. Please try again and enter an allowable integrity label")
+        print(bcolors.FAIL + "ERROR: Integrity label is not defined. Please try again and enter an allowable "
+                             "integrity label" + bcolors.ENDC)
         return 0
 
     command = encrypt(command, key)
@@ -38,16 +51,16 @@ def Accept(command, cmd, client, key):
     replay = decrypt(replay, key)
     replay = replay.split()
     if replay[0] == "ok":
-        print("Accept request sent to the applicant successfully.")
+        print(bcolors.OKGREEN + "Accept request sent to the applicant successfully." + bcolors.ENDC)
         return 1  # accept request sent successfully
     elif replay[0] == "E0":
-        print("ERROR: There is no user with the given username.")
+        print(bcolors.FAIL + "ERROR: There is no user with the given username." + bcolors.ENDC)
         return 0  # accept request failed
     elif replay[0] == "E1":
-        print("ERROR: There is no account registered for your username yet.")
+        print(bcolors.FAIL + "ERROR: There is no account registered for your username yet." + bcolors.ENDC)
         return 0  # accept request failed
     elif replay[0] == "E2":
-        print("ERROR: There is no pending join request from this username")
+        print(bcolors.FAIL + "ERROR: There is no pending join request from this username" + bcolors.ENDC)
         return 0  # accept request failed
 
 
@@ -56,17 +69,20 @@ def Create(command, cmd, client, key):
     integrity_label = ["VeryTrusted", "Trusted", "SlightlyTrusted", "Untrusted"]
 
     if not (0 <= int(cmd[1]) <= 3):
-        print("ERROR: Account type is out of range!!! Please try again")
+        print(bcolors.FAIL + "ERROR: Account type is out of range!!! Please try again" + bcolors.ENDC)
         return 0
     if float(cmd[2]) < 0:
-        print("ERROR: Amount of money received is negative. Please try again")
+        print(bcolors.FAIL + "ERROR: Amount of money received is negative. Please try again" + bcolors.ENDC)
         return 0
     if cmd[3] not in conf_label:
-        print("ERROR: Confidentiality label is not defined, Please try again and enter an allowable Confidentiality "
-              "label")
+        print(
+            bcolors.FAIL + "ERROR: Confidentiality label is not defined, Please try again and enter an allowable "
+                           "Confidentiality label" + bcolors.ENDC)
         return 0
     if cmd[4] not in integrity_label:
-        print("ERROR: Integrity label is not defined. Please try again and enter an allowable integrity label")
+        print(
+            bcolors.FAIL + "ERROR: Integrity label is not defined. Please try again and enter an allowable integrity "
+                           "label" + bcolors.ENDC)
         return 0
 
     command = encrypt(command, key)
@@ -75,8 +91,8 @@ def Create(command, cmd, client, key):
     replay = client.recv(1024)
     replay = replay.decode('utf-8')
     replay = decrypt(replay, key)
-    print("Your account has been created successfully!!, Your account number is: {}"
-          .format(replay))
+    print(bcolors.OKGREEN + "Your account has been created successfully!!, Your account number is: {}".format(
+        replay) + bcolors.ENDC)
 
 
 def decrypt(ciphertext, key):
@@ -99,22 +115,22 @@ def Deposit(command, cmd, client, key):
     :return: status code (1: successful, 0: failure)
     """
     if len(cmd[1]) != 10:
-        print("ERROR: Invalid origin account number. [Length(10)]")
+        print(bcolors.FAIL + "ERROR: Invalid origin account number. [Length(10)]" + bcolors.ENDC)
         return 0
     if not (cmd[1].isnumeric()):
-        print("ERROR: Invalid origin account number. [Digits Only]")
+        print(bcolors.FAIL + "ERROR: Invalid origin account number. [Digits Only]" + bcolors.ENDC)
         return 0
     if len(cmd[2]) != 10:
-        print("ERROR: Invalid destination account number. [Length(10)]")
+        print(bcolors.FAIL + "ERROR: Invalid destination account number. [Length(10)]" + bcolors.ENDC)
         return 0
     if not (cmd[2].isnumeric()):
-        print("ERROR: Invalid destination account number. [Digits Only]")
+        print(bcolors.FAIL + "ERROR: Invalid destination account number. [Digits Only]" + bcolors.ENDC)
         return 0
     if len(cmd[3]) > 11:
-        print("ERROR: Out of range amount. [Length(11)]")
+        print(bcolors.FAIL + "ERROR: Out of range amount. [Length(11)]" + bcolors.ENDC)
         return 0
     if float(cmd[3]) < 0:
-        print("ERROR: Invalid amount. [Positive Number Only]")
+        print(bcolors.FAIL + "ERROR: Invalid amount. [Positive Number Only]" + bcolors.ENDC)
         return 0
 
     command = encrypt(command, key)
@@ -125,19 +141,19 @@ def Deposit(command, cmd, client, key):
     replay = decrypt(replay, key)
     replay = replay.split()
     if replay[0] == "ok":
-        print("Deposit was successful.")
+        print(bcolors.OKGREEN + "Deposit was successful." + bcolors.ENDC)
         return 1  # Deposit was successful
     elif replay[0] == "E0":
-        print("ERROR: There is no account with the given from_account_no.")
+        print(bcolors.FAIL + "ERROR: There is no account with the given from_account_no." + bcolors.ENDC)
         return 0  # Deposit was failed
     elif replay[0] == "E1":
-        print("ERROR: There is no account with the given to_account_no.")
+        print(bcolors.FAIL + "ERROR: There is no account with the given to_account_no." + bcolors.ENDC)
         return 0  # Deposit was failed
     elif replay[0] == "E2":
-        print("ERROR: Access denied. You are not permitted to withdraw from this account")
+        print(bcolors.FAIL + "ERROR: Access denied. You are not permitted to withdraw from this account" + bcolors.ENDC)
         return 0  # Deposit was failed
     elif replay[0] == "E3":
-        print("ERROR: Your account balance is not enough.")
+        print(bcolors.FAIL + "ERROR: Your account balance is not enough." + bcolors.ENDC)
         return 0  # Deposit was failed
 
 
@@ -161,10 +177,10 @@ def Join(command, cmd, client, key):
     :return: status code (1: successful, 0: failure)
     """
     if len(cmd[1]) != 10:
-        print("ERROR: Invalid account number. [Length(10)]")
+        print(bcolors.FAIL + "ERROR: Invalid account number. [Length(10)]" + bcolors.ENDC)
         return 0
     if not (cmd[1].isnumeric()):
-        print("ERROR: Invalid account number. [Digits Only]")
+        print(bcolors.FAIL + "ERROR: Invalid account number. [Digits Only]" + bcolors.ENDC)
         return 0
 
     command = encrypt(command, key)
@@ -175,16 +191,19 @@ def Join(command, cmd, client, key):
     replay = decrypt(replay, key)
     replay = replay.split()
     if replay[0] == "ok":
-        print("Join request sent to the account owner successfully.")
+        print(bcolors.OKGREEN + "Join request sent to the account owner successfully." + bcolors.ENDC)
         return 1  # join request sent successfully
     elif replay[0] == "E0":
-        print("ERROR: There is no account with the given account_no.")
+        print(bcolors.FAIL + "ERROR: There is no account with the given account_no." + bcolors.ENDC)
         return 0  # join request failed
     elif replay[0] == "E1":
-        print("ERROR: This account is yours so you can not send join request for yourself")
+        print(
+            bcolors.FAIL + "ERROR: This account is yours so you can not send join request for yourself" + bcolors.ENDC)
         return 0  # join request failed
     elif replay[0] == "E2":
-        print("ERROR: you have joint to this account before so you can not send join request for it again")
+        print(
+            bcolors.FAIL + "ERROR: you have joint to this account before so you can not send join request for it again"
+            + bcolors.ENDC)
         return 0  # join request failed
 
 
@@ -199,7 +218,7 @@ def key_exchange(client):
     shared_data = client_private_key.exchange(ec.ECDH(), server_public_key)
     secret_key = HKDF(hashes.SHA256(), 32, None, b'Key Exchange', backend).derive(shared_data)
     session_key = secret_key[-16:]
-    print("Key exchanged successfully.\n")
+    print(bcolors.OKBLUE + "Key exchanged successfully.\n" + bcolors.ENDC)
     return session_key
 
 
@@ -213,17 +232,17 @@ def Login(command, client, key):
 
     replay = replay.split()
     if replay[0] == "ok":
-        print("Logged in successfully.")
+        print(bcolors.OKGREEN + "Logged in successfully." + bcolors.ENDC)
         return 1  # Login successfully
     elif replay[0] == "E0":
-        print("ERROR: Username do not match. Please try again")
+        print(bcolors.FAIL + "ERROR: Username do not match. Please try again" + bcolors.ENDC)
         return 0  # Login failed
     elif replay[0] == "E1":
-        print("ERROR: Password do not match. Please try again")
+        print(bcolors.FAIL + "ERROR: Password do not match. Please try again" + bcolors.ENDC)
         return 0  # Login failed
     elif replay[0] == "ban":
-        print("ERROR: Your Account is ban for {} seconds. try again later"
-              .format(replay[1]))
+        print(bcolors.FAIL + "ERROR: Your Account is ban for {} seconds. try again later"
+              .format(replay[1]) + bcolors.ENDC)
         return 0  # Login failed
 
 
@@ -236,10 +255,10 @@ def Show_Account(command, cmd, client, key):
     :return: status code (1: successful, 0: failure)
     """
     if len(cmd[1]) != 10:
-        print("ERROR: Invalid account number. [Length(10)]")
+        print(bcolors.FAIL + "ERROR: Invalid account number. [Length(10)]" + bcolors.ENDC)
         return 0
     if not (cmd[1].isnumeric()):
-        print("ERROR: Invalid account number. [Digits Only]")
+        print(bcolors.FAIL + "ERROR: Invalid account number. [Digits Only]" + bcolors.ENDC)
         return 0
 
     command = encrypt(command, key)
@@ -252,10 +271,11 @@ def Show_Account(command, cmd, client, key):
     if replay[0] == "ok":
         return [1, replay[1]]
     elif replay[0] == "E0":
-        print("ERROR: There is no account with the given account_no.")
+        print(bcolors.FAIL + "ERROR: There is no account with the given account_no." + bcolors.ENDC)
         return [0]
     elif replay[0] == "E1":
-        print("ERROR: Access denied. You are not permitted to get this account's information")
+        print(bcolors.FAIL + "ERROR: Access denied. You are not permitted to get this account's information"
+              + bcolors.ENDC)
         return [0]
 
 
@@ -276,7 +296,7 @@ def Show_MyAccount(command, client, key):
     if replay[0] == "ok":
         return [1, replay[1]]
     elif replay[0] == "E0":
-        print("ERROR: There is no account registered for your username yet.")
+        print(bcolors.FAIL + "ERROR: There is no account registered for your username yet." + bcolors.ENDC)
         return [0]
 
 
@@ -297,7 +317,7 @@ def Show_MyJoinRequests(command, client, key):
     if replay[0] == "ok":
         return [1, replay[1]]
     elif replay[0] == "E0":
-        print("ERROR: There is no account registered for your username yet.")
+        print(bcolors.FAIL + "ERROR: There is no account registered for your username yet." + bcolors.ENDC)
         return [0]
 
 
@@ -311,13 +331,13 @@ def Signup(command, client, key):
 
     replay = replay.split()
     if replay[0] == "ok":
-        print("Signup successfully.")
+        print(bcolors.OKGREEN + "Signup successfully." + bcolors.ENDC)
         return 1  # Signup successfully
     elif replay[0] == "E0":
-        print("ERROR: This username already exists. Please select another one.")
+        print(bcolors.FAIL + "ERROR: This username already exists. Please select another one." + bcolors.ENDC)
         return 0  # Signup failed
     elif replay[0] == "E1":
-        print("ERROR: Password is not strong enough. {}".format(replay[3:]))
+        print(bcolors.FAIL + "ERROR: Password is not strong enough. {}".format(replay[3:]) + bcolors.ENDC)
         return 0  # Signup failed
 
 
@@ -330,16 +350,16 @@ def Withdraw(command, cmd, client, key):
     :return: status code (1: successful, 0: failure)
     """
     if len(cmd[1]) != 10:
-        print("ERROR: Invalid account number. [Length(10)]")
+        print(bcolors.FAIL + "ERROR: Invalid account number. [Length(10)]" + bcolors.ENDC)
         return 0
     if not (cmd[1].isnumeric()):
-        print("ERROR: Invalid account number. [Digits Only]")
+        print(bcolors.FAIL + "ERROR: Invalid account number. [Digits Only]" + bcolors.ENDC)
         return 0
     if len(cmd[2]) > 11:
-        print("ERROR: Out of range amount. [Length(11)]")
+        print(bcolors.FAIL + "ERROR: Out of range amount. [Length(11)]" + bcolors.ENDC)
         return 0
     if float(cmd[2]) < 0:
-        print("ERROR: Invalid amount. [Positive Number Only]")
+        print(bcolors.FAIL + "ERROR: Invalid amount. [Positive Number Only]" + bcolors.ENDC)
         return 0
 
     command = encrypt(command, key)
@@ -350,16 +370,16 @@ def Withdraw(command, cmd, client, key):
     replay = decrypt(replay, key)
     replay = replay.split()
     if replay[0] == "ok":
-        print("Withdrawal was successful.")
+        print(bcolors.OKGREEN + "Withdrawal was successful." + bcolors.ENDC)
         return 1  # Withdrawal was successful
     elif replay[0] == "E0":
-        print("ERROR: There is no account with the given account_no.")
+        print(bcolors.FAIL + "ERROR: There is no account with the given account_no." + bcolors.ENDC)
         return 0  # Withdrawal was failed
     elif replay[0] == "E1":
-        print("ERROR: Access denied. You are not permitted to withdraw from this account")
+        print(bcolors.FAIL + "ERROR: Access denied. You are not permitted to withdraw from this account" + bcolors.ENDC)
         return 0  # Withdrawal was failed
     elif replay[0] == "E2":
-        print("ERROR: Your account balance is not enough.")
+        print(bcolors.FAIL + "ERROR: Your account balance is not enough." + bcolors.ENDC)
         return 0  # Withdrawal was failed
 
 
@@ -367,10 +387,10 @@ if __name__ == '__main__':
     login = False
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     if client == 0:
-        print("ERROR: Unable to create client socket !!!")
+        print(bcolors.FAIL + "ERROR: Unable to create client socket !!!" + bcolors.ENDC)
 
     client.connect((socket.gethostname(), 8080))
-    print("Connecting to server ... \n")
+    print(bcolors.WARNING + "Connecting to server ... \n" + bcolors.ENDC)
 
     data = client.recv(1024)
     data = data.decode('utf-8')
@@ -416,10 +436,10 @@ if __name__ == '__main__':
                 '\tExit\n'
         )
 
-        print(help_message1)
+        print(bcolors.HEADER + help_message1 + bcolors.ENDC)
 
         while True:
-            command = input('> ')
+            command = input(bcolors.HEADER + '> ' + bcolors.ENDC)
             cmd = command.split()
 
             if login:
@@ -432,7 +452,7 @@ if __name__ == '__main__':
                 elif cmd[0] == "Show_MyJoinRequests" and len(cmd) == 1:
                     replay = Show_MyJoinRequests(command, client, session_key)
                     if replay[0]:
-                        print(replay[1])
+                        print(bcolors.WARNING + replay[1] + bcolors.ENDC)
 
                 elif cmd[0] == "Accept" and len(cmd) == 4:
                     Accept(command, cmd, client, session_key)
@@ -440,12 +460,12 @@ if __name__ == '__main__':
                 elif cmd[0] == "Show_MyAccount" and len(cmd) == 1:
                     replay = Show_MyAccount(command, client, session_key)
                     if replay[0]:
-                        print(replay[1])
+                        print(bcolors.WARNING + replay[1] + bcolors.ENDC)
 
                 elif cmd[0] == "Show_Account" and len(cmd) == 2:
                     replay = Show_Account(command, cmd, client, session_key)
                     if replay[0]:
-                        print(replay[1])
+                        print(bcolors.WARNING + replay[1] + bcolors.ENDC)
 
                 elif cmd[0] == "Deposit" and len(cmd) == 4:
                     Deposit(command, cmd, client, session_key)
@@ -454,7 +474,7 @@ if __name__ == '__main__':
                     Withdraw(command, cmd, client, session_key)
 
                 elif cmd[0] == "Help" and len(cmd) == 1:
-                    print(help_message2)
+                    print(bcolors.HEADER + help_message2 + bcolors.ENDC)
 
                 elif cmd[0] == "Exit" and len(cmd) == 1:
                     command = encrypt(command, session_key)
@@ -462,11 +482,11 @@ if __name__ == '__main__':
                     replay = client.recv(1024)
                     replay = replay.decode('utf-8')
                     replay = decrypt(replay, session_key)
-                    print(replay)
+                    print(bcolors.OKCYAN + replay + bcolors.ENDC)
                     break
 
                 else:
-                    print("Command is wrong!!!")
+                    print(bcolors.WARNING + "Command is wrong!!!" + bcolors.ENDC)
 
             else:
                 if cmd[0] == "Signup" and len(cmd) == 3:
@@ -475,11 +495,11 @@ if __name__ == '__main__':
                 elif cmd[0] == "Login" and len(cmd) == 3:
                     if Login(command, client, session_key):
                         print()
-                        print(help_message2)
+                        print(bcolors.HEADER + help_message2 + bcolors.ENDC)
                         login = True
 
                 elif cmd[0] == "Help" and len(cmd) == 1:
-                    print(help_message1)
+                    print(bcolors.HEADER + help_message1 + bcolors.ENDC)
 
                 elif cmd[0] == "Exit" and len(cmd) == 1:
                     command = encrypt(command, session_key)
@@ -487,10 +507,10 @@ if __name__ == '__main__':
                     replay = client.recv(1024)
                     replay = replay.decode('utf-8')
                     replay = decrypt(replay, session_key)
-                    print(replay)
+                    print(bcolors.OKCYAN + replay + bcolors.ENDC)
                     break
 
                 else:
-                    print("Command is wrong!!!")
+                    print(bcolors.WARNING + "Command is wrong!!!" + bcolors.ENDC)
 
         client.close()
