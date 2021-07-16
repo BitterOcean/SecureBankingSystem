@@ -134,12 +134,15 @@ def client_service(client):
                       "Untrusted"      : '4',
                     }
                 """
+                conf_label = ["TopSecret", "Secret", "Confidential", "Unclassified"]
+                integrity_label = ["VeryTrusted", "Trusted", "SlightlyTrusted", "Untrusted"]
                 status = '0'
                 my_account_no = get_my_own_account_no(username)
                 if check_username(command[1]):  # valid username
                     if my_account_no is not None:  # have account before
                         if is_join_from_username_for_account(command[1], int(my_account_no)):  # valid accept request
-                            accept_request(command[1], command[2], command[3], username)
+                            accept_request(command[1], int(my_account_no), str(conf_label.index(command[2]) + 1),
+                                           str(integrity_label.index(command[3]) + 1))
                             msg = "ok " + str(datetime.now())
                             status = '1'
                         else:
@@ -149,7 +152,8 @@ def client_service(client):
                 else:
                     msg = "E0 " + str(datetime.now())  # invalid username
 
-                add_accept_log(command[1], username, command[2], command[3], client.getpeername()[0],
+                add_accept_log(command[1], username, str(conf_label.index(command[2]) + 1),
+                               str(integrity_label.index(command[3]) + 1), client.getpeername()[0],
                                client.getpeername()[1], status)
 
                 msg = encrypt(msg, session_key)
@@ -874,7 +878,7 @@ def Show_MyJoinRequests(username):
     cursor.callproc('Show_MyJoinRequests', [username])
     for result in cursor.stored_results():
         query_result = result.fetchall()
-    if query_result is not None:
+    if len(query_result) != 0:
         ret = "Your Join Requests:"
         for i in range(len(query_result)):
             ret = ret + "\n" + str(query_result[i][0])
