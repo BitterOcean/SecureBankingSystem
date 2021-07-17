@@ -1,5 +1,6 @@
 import _thread
 import base64
+import csv
 import hashlib
 import json
 import os
@@ -806,6 +807,21 @@ def key_exchange(client):
     return session_key
 
 
+def login_audit():
+    cursor = connection.cursor()
+    SQLString = "SELECT username, ip, port, num_of_tries FROM login_audit"
+    cursor.execute(SQLString)
+    rows = cursor.fetchall()
+    header = ['Username', 'IP', 'Port', 'Number Of Tries']
+    with open('Database/Login_audit_log.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for a, b, c, d in rows:
+            data = (a, b, c, d,)
+            writer.writerow(data)
+    cursor.close()
+
+
 def show_account_info(account_no):
     # account_info:
     cursor = connection.cursor()
@@ -908,6 +924,7 @@ def withdraw(username, account_no, amount):
 
 
 if __name__ == '__main__':
+    login_audit()
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     if server == 0:
         print("Error in server socket creation !!!")

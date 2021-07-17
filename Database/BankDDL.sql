@@ -33,6 +33,7 @@ DROP TABLE IF EXISTS Withdraw_Request_Log;
 DROP TABLE IF EXISTS Ban_Users;
 SET FOREIGN_KEY_CHECKS = 1;
 
+
 CREATE TABLE User (
   username VARCHAR(50) PRIMARY KEY,
   `password` VARCHAR(200) NOT NULL,
@@ -207,3 +208,25 @@ CREATE TABLE Ban_Users(
   finished_at DATETIME,
   FOREIGN KEY (username) REFERENCES User(username)
 );
+
+
+CREATE OR REPLACE VIEW fail_login_count
+AS
+	SELECT username, COUNT(*) AS login_counts
+	FROM Login_Request_Log
+	WHERE TIMESTAMPDIFF(HOUR,created_at ,CURRENT_TIMESTAMP) <= 24
+    AND status = '0'
+    AND username IN(SELECT username FROM User)
+	GROUP BY username;
+
+
+CREATE OR REPLACE VIEW login_audit
+AS
+	SELECT DISTINCT username, ip, port, COUNT(*) AS num_of_tries
+	FROM Login_Request_Log
+	  INNER JOIN fail_login_count USING (username)
+	WHERE TIMESTAMPDIFF(HOUR,created_at ,CURRENT_TIMESTAMP) <= 24
+	  AND status = '0'
+    AND login_counts > 1
+  GROUP BY username, ip, port
+  ORDER BY username DESC;
