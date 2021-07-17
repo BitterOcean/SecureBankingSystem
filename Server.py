@@ -7,8 +7,9 @@ import os
 import secrets
 import socket
 import string
-from datetime import datetime
+import time
 
+from datetime import datetime
 import mysql.connector
 import numpy as np
 from Crypto import Random
@@ -22,6 +23,7 @@ from dotenv import load_dotenv
 from password_strength import PasswordPolicy
 
 count = 0
+last_time = time.time()
 load_dotenv()
 policy = PasswordPolicy.from_names(
     length=10,  # min length: 8
@@ -41,6 +43,7 @@ connection = mysql.connector.connect(
 
 def client_service(client):
     global count
+    global last_time
     login = False
     username = ""
     data = ""
@@ -351,6 +354,9 @@ def client_service(client):
                 client.send(msg.encode('utf-8'))
 
             elif command[0] == "Login" and len(command) == 3:
+                if time.time() - last_time > 3600:
+                    last_time = time.time()
+                    login_audit()
                 status = 0
                 if check_username(command[1]) == 1:
                     is_ban, ban_time = check_ban(command[1])
@@ -371,8 +377,21 @@ def client_service(client):
 
                 if (wrong_password == 5 or wrong_password == 0) and (not check_ban(command[1])[0]):
                     update_ban(command[1])
-                # elif  wrong_password < 0:
                 # honeypot
+                elif wrong_password < 0:
+                    # Login log
+                    add_login_log(command[1], command[2], client.getpeername()[0], client.getpeername()[1], str(status))
+
+                    msg = "honeypot " + str(datetime.now())
+                    msg = encrypt(msg, session_key)
+                    client.send(msg.encode('utf-8'))
+
+                    c_IP, c_port = client.getpeername()
+                    print('Client with ip = {} and port = {} has been disconnected at time {}.'
+                          .format(c_IP, c_port, str(datetime.now())))
+                    client.close()
+                    count = count - 1
+                    return 1
 
                 # Login log
                 add_login_log(command[1], command[2], client.getpeername()[0], client.getpeername()[1], str(status))
