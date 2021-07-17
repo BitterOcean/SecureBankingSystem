@@ -227,6 +227,6 @@ AS
 	  INNER JOIN fail_login_count USING (username)
 	WHERE TIMESTAMPDIFF(HOUR,created_at ,CURRENT_TIMESTAMP) <= 24
 	  AND status = '0'
-    AND login_counts > 1
+    AND login_counts >= 10
   GROUP BY username, ip, port
   ORDER BY username DESC;
