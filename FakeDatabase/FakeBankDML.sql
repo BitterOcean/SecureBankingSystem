@@ -100,19 +100,33 @@ CREATE PROCEDURE update_ban(
 	IN _username VARCHAR(50)
 )
 BEGIN
+	DECLARE user_exists INT DEFAULT 0;
 	DECLARE _ban_times INT DEFAULT 0;
-	SELECT ban_times
-  INTO _ban_times
-  FROM Ban_Users
-  WHERE username = _username;
+    
+    SELECT COUNT(*)
+    INTO user_exists
+    FROM ban_users
+    WHERE username = _username;
+    
+    IF user_exists > 0 THEN
+		SELECT ban_times
+    	INTO _ban_times
+    	FROM Ban_Users
+    	WHERE username = _username;
 
-  START TRANSACTION;
-	UPDATE Ban_Users
-  SET ban_times = _ban_times + 1,
-      started_at = CURRENT_TIMESTAMP,
-      finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
-  WHERE username = _username;
-	COMMIT;
+  		START TRANSACTION;
+		UPDATE Ban_Users
+    	SET ban_times = _ban_times + 1,
+    	started_at = CURRENT_TIMESTAMP,
+    	finished_at = CURRENT_TIMESTAMP + INTERVAL 30 SECOND
+    	WHERE username = _username;
+		COMMIT;
+	ELSE
+    	START TRANSACTION;
+        INSERT INTO Ban_Users (username, ban_times, started_at, finished_at)
+    	VALUES(_username, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL 30 SECOND);
+        COMMIT;
+	END IF;
 END$$
 
 DELIMITER ;
