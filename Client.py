@@ -9,6 +9,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from random import randint
+
+HP = 0
 
 
 class bcolors:
@@ -208,6 +211,7 @@ def Join(command, cmd, client, key):
 
 
 def key_exchange(client):
+    global HP
     backend = default_backend()
     client_private_key = ec.generate_private_key(ec.SECP256R1(), backend)
     client_public_key = client_private_key.public_key()
@@ -218,11 +222,22 @@ def key_exchange(client):
     shared_data = client_private_key.exchange(ec.ECDH(), server_public_key)
     secret_key = HKDF(hashes.SHA256(), 32, None, b'Key Exchange', backend).derive(shared_data)
     session_key = secret_key[-16:]
-    print(bcolors.OKBLUE + "Key exchanged successfully.\n" + bcolors.ENDC)
+    if not HP:
+        print(bcolors.OKBLUE + "Key exchanged successfully.\n" + bcolors.ENDC)
     return session_key
 
 
 def Login(command, client, key):
+    global HP
+    while True:
+        range_start = 10 ** 4
+        range_end = (10 ** 5) - 1
+        random_number = randint(range_start, range_end)
+        if int(input(bcolors.WARNING + "Please enter this number ({}): ".format(random_number) + bcolors.ENDC)) == random_number:
+            break
+        else:
+            print(bcolors.FAIL + "ERROR: Wrong number. Please try again" + bcolors.ENDC)
+
     command = encrypt(command, key)
     client.send(command.encode('utf-8'))
 
@@ -244,6 +259,10 @@ def Login(command, client, key):
         print(bcolors.FAIL + "ERROR: Your Account is ban for {} seconds. try again later"
               .format(replay[1]) + bcolors.ENDC)
         return 0  # Login failed
+    elif replay[0] == "honeypot":
+        print(bcolors.FAIL + "ERROR: Password do not match. Please try again" + bcolors.ENDC)
+        HP = 1
+        return -1  # Login failed => go honeypot
 
 
 def Show_Account(command, cmd, client, key):
@@ -338,6 +357,9 @@ def Signup(command, client, key):
         return 0  # Signup failed
     elif replay[0] == "E1":
         print(bcolors.FAIL + "ERROR: Password is not strong enough. {}".format(replay[3:]) + bcolors.ENDC)
+        return 0  # Signup failed
+    elif replay[0] == "E2":
+        print(bcolors.FAIL + "ERROR: Failed to sign up. Please try again." + bcolors.ENDC)
         return 0  # Signup failed
 
 
@@ -493,10 +515,24 @@ if __name__ == '__main__':
                     Signup(command, client, session_key)
 
                 elif cmd[0] == "Login" and len(cmd) == 3:
-                    if Login(command, client, session_key):
+                    log = Login(command, client, session_key)
+                    if log == 1:
                         print()
                         print(bcolors.HEADER + help_message2 + bcolors.ENDC)
                         login = True
+                    # honeypot
+                    elif log == -1:
+                        client.close()
+                        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        client.connect((socket.gethostname(), 8000))
+                        data = client.recv(1024)
+                        data = data.decode('utf-8')
+                        if data == "Server Is Busy !!":
+                            print(bcolors.FAIL + "Internal Server Error: Service Unavailable !!" + bcolors.ENDC)
+                            client.close()
+                            break
+                        else:
+                            session_key = key_exchange(client)
 
                 elif cmd[0] == "Help" and len(cmd) == 1:
                     print(bcolors.HEADER + help_message1 + bcolors.ENDC)
