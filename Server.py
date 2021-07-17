@@ -184,7 +184,7 @@ def client_service(client):
                     1. Integrity(User)       <= Integrity(Account)
                     2. Confidentiality(User) >= Confidentiality(Account)
                 :Access Control Strategy to deposit to_account_no: everyone has access
-                :In Database:    
+                :In Database:
                     conf_label = {
                       "TopSecret"    : '1',
                       "Secret"       : '2',
@@ -229,7 +229,7 @@ def client_service(client):
                     1. Integrity(User)       >= Integrity(Account)
                     2. Confidentiality(User) <= Confidentiality(Account)
                 :Access Control Strategy to deposit to_account_no: everyone has access
-                :In Database:    
+                :In Database:
                     conf_label = {
                       "TopSecret"    : '1',
                       "Secret"       : '2',
@@ -281,7 +281,7 @@ def client_service(client):
                 :Access Control Strategy to withdraw from account_no:
                     1. Integrity(User)       >= Integrity(Account)
                     2. Confidentiality(User) <= Confidentiality(Account)
-                :In Database:    
+                :In Database:
                     conf_label = {
                       "TopSecret"    : '1',
                       "Secret"       : '2',
