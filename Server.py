@@ -813,7 +813,7 @@ def login_audit():
     cursor.execute(SQLString)
     rows = cursor.fetchall()
     header = ['Username', 'IP', 'Port', 'Number Of Tries']
-    with open('Database/Login_audit_log.csv', 'w', encoding='UTF8', newline='') as f:
+    with open('Audit/Login_audit_log.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(header)
         for a, b, c, d in rows:
