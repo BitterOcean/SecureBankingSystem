@@ -124,7 +124,7 @@ def client_service(client):
             elif command[0] == "Accept" and len(command) == 4:
                 """
                 :command: Accept [username] [conf_label] [integrity_label]
-                :In Database:    
+                :In Database:
                     conf_label = {
                       "TopSecret"    : '1',
                       "Secret"       : '2',

@@ -516,10 +516,9 @@ DROP PROCEDURE IF EXISTS five_withdraw;
 DELIMITER $$
 CREATE PROCEDURE five_withdraw(IN _account_no INT(10))
 BEGIN
-	SELECT amount, created_at
+	SELECT ABS(amount), created_at
   FROM `Transaction`
 	WHERE from_account_no = _account_no
-        AND to_account_no = _account_no
 	ORDER BY created_at DESC
 	LIMIT 5;
 END$$
